@@ -1,48 +1,22 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import { logRoutes } from './bootstrap';
 import logger from './logger';
+import { scriptRouter } from './modules/script/script.router';
+import { userRouter } from './modules/user/user.router';
 
-const server = express();
+const bootstrap = () => {
+  const server = express();
 
-server.use(express.json());
+  server.use(express.json());
 
-server.get('/', (req: Request, res: Response) => {
-  logger.info('Пришел Get');
-});
+  server.use('/script', scriptRouter);
+  server.use('/user', userRouter);
 
-server.get('/script/complexScripts', (req: Request, res: Response) => {
-  const filterComplexScripts = req.query;
-  res.json(filterComplexScripts);
-  logger.info(`Пришел запрос на сложные скрипты`);
-});
+  logRoutes(server);
 
-server.get('/script/:numberScript', (req: Request, res: Response) => {
-  const numberScript = req.params.numberScript;
-  if (Number(numberScript) < 100) {
-    res.json({ error: 'Ваш скрипт' });
-    logger.info('Запрос  скрипта');
-  } else {
-    res.json({ error: 'Такого скрипта не существует' });
-    logger.error('Запрос несуществующего скрипта');
-  }
-});
+  server.listen(3000, () => {
+    logger.info('Запуск сервера');
+  });
+};
 
-server.get('/script/complexScripts/:number', (req: Request, res: Response) => {
-  const numberComplexScript = req.params.number;
-  if (Number(numberComplexScript) < 5) {
-    res.json({ error: 'Ваш скрипт' });
-    logger.info(`Пришел запрос на номер сложного скрипта ${numberComplexScript}`);
-  } else {
-    res.json({ error: 'Такого скрипта не существует' });
-    logger.error('Запрос несуществующего скрипта');
-  }
-});
-
-server.post('/register', (req: Request, res: Response) => {
-  const numberScript = req.body;
-  logger.info(`Пришли данные для регистрации. name = ${numberScript.name} и password = ${numberScript.password}`);
-  res.json(numberScript);
-});
-
-server.listen(3000, () => {
-  console.log('Get');
-});
+bootstrap();
