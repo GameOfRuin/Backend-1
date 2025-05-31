@@ -1,13 +1,22 @@
 import express from 'express';
+import { logRoutes } from './bootstrap';
+import logger from './logger';
+import { scriptRouter } from './modules/script/script.router';
+import { userRouter } from './modules/user/user.router';
 
-const server = express();
+const bootstrap = () => {
+  const server = express();
 
-server.get('/', (req, res) => {
-  console.log('Пришел Get');
+  server.use(express.json());
 
-  res.json({ figure: '2' });
-});
+  server.use('/script', scriptRouter);
+  server.use('/user', userRouter);
 
-server.listen(3000, () => {
-  console.log('Get');
-});
+  logRoutes(server);
+
+  server.listen(3000, () => {
+    logger.info('Запуск сервера');
+  });
+};
+
+bootstrap();
