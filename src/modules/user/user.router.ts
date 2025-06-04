@@ -4,7 +4,7 @@ import logger from '../../logger';
 export const userRouter = express.Router();
 
 userRouter.post('/register', (req: Request, res: Response) => {
-  const numberScript = req.body;
-  logger.info(`Пришли данные для регистрации. name = ${numberScript.name} и password = ${numberScript.password}`);
-  res.json(numberScript);
+  const userData = req.body;
+  logger.info(`Пришли данные для регистрации. name = ${userData.name} и password = ${userData.password}`);
+  res.json(userData);
 });
