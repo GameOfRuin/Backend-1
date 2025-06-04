@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import express from 'express';
 import { logRoutes } from './bootstrap';
 import logger from './logger';
