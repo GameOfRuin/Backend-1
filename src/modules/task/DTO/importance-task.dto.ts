@@ -1,21 +1,28 @@
-import { IsEnum } from 'class-validator';
+import { IsEnum, IsString, MaxLength } from 'class-validator';
 
-enum StatusTask {
+enum TaskStatus {
   progress = 'progress',
   waiting = 'waiting',
   cancelled = 'cancelled',
 }
 
-enum ImportanceTask {
-  High = 'high',
-  Middle = 'middle',
-  Low = 'low',
+enum TaskImportance {
+  high = 'high',
+  middle = 'middle',
+  low = 'low',
 }
 
-export class IsEnumStatusDto {
-  @IsEnum(StatusTask)
+export class CreateTaskDto {
+  @IsString()
+  title: string;
+
+  @IsEnum(TaskStatus)
   status: string;
 
-  @IsEnum(ImportanceTask)
+  @IsEnum(TaskImportance)
   importance: string;
+
+  @IsString()
+  @MaxLength(256)
+  description: string;
 }

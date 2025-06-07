@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 
-export const validation = <T extends object, D>(ValidationRules: new () => T, data: D) => {
+export const validate = <T extends object, D>(ValidationRules: new () => T, data: D) => {
   const dto: T = plainToInstance(ValidationRules, data);
   const errors = validateSync(dto);
 

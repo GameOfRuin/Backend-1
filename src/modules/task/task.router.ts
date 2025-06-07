@@ -1,12 +1,13 @@
 import express, { Request, Response } from 'express';
 import logger from '../../logger';
-import { validation } from '../../validation/validation';
-import { IsEnumStatusDto } from './DTO';
+import { IdNumberDto } from '../../shared';
+import { validate } from '../../validation';
+import { CreateTaskDto } from './DTO';
 
 export const taskRouter = express.Router();
 
 taskRouter.get('/:id', (req: Request, res: Response) => {
-  const id = req.params.id;
+  const { id } = validate(IdNumberDto, req.params);
   logger.info(`Чтение задачи по id=${id}`);
   res.json({ message: `Вы пытаетесь прочитать задачу id=${id}` });
 });
@@ -16,14 +17,10 @@ taskRouter.get('/', (req: Request, res: Response) => {
   res.json(req.query);
 });
 
-taskRouter.post('/:id', (req: Request, res: Response) => {
-  const id = req.params.id;
+taskRouter.post('/', (req: Request, res: Response) => {
   const body = req.body;
 
-  validation(IsEnumStatusDto, body);
+  const dto = validate(CreateTaskDto, body);
 
-  logger.info(`Чтение задачи по id=${id}`);
-  res.json({
-    message: `Вы пытаетесь прочитать задачу id=${id} статус задачи - ${body.status} важность - ${body.importance}`,
-  });
+  res.json({ message: 'Вы создали задачу' });
 });

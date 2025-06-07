@@ -5,13 +5,13 @@ export class RegisterUserDto {
   email: string;
 
   @IsString()
-  @MaxLength(14)
-  @MinLength(3)
+  @MaxLength(32)
+  @MinLength(5)
   password: string;
 }
-export class LoginrUserDto {
-  @IsString()
-  nickname: string;
+export class LoginUserDto {
+  @IsEmail()
+  email: string;
 
   @IsString()
   password: string;
