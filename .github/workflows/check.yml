@@ -20,5 +20,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Шаг проверки ESLint
+      - name: Run ESLint
+        run: npx eslint src/ --max-warnings=0
+
       - name: Build project
         run: npm run build
