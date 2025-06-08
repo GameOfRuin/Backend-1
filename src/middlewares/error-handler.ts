@@ -1,8 +1,19 @@
 import { NextFunction, Request, Response } from 'express';
 import logger from '../logger';
 
-export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+export const errorHandler = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  err: any,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   logger.error(err);
 
-  res.status(500).json({ status: 'error', message: err.message });
+  const isCustomError = Boolean(err.code);
+
+  res.status(isCustomError ? err.code : 500).json({
+    status: 'error',
+    message: isCustomError ? err.message : 'Internal Server Error',
+  });
 };
