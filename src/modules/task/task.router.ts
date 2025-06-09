@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import logger from '../../logger';
 import { IdNumberDto } from '../../shared';
-import { validate } from '../../validation';
+import { validate } from '../../validate';
 import { CreateTaskDto } from './DTO';
 
 export const taskRouter = express.Router();
@@ -22,5 +22,5 @@ taskRouter.post('/', (req: Request, res: Response) => {
 
   const dto = validate(CreateTaskDto, body);
 
-  res.json({ message: 'Вы создали задачу' });
+  res.json({ message: `Вы создали задачу ${dto}` });
 });

@@ -12,7 +12,7 @@ export const validate = <T extends object, D>(ValidationRules: new () => T, data
     if (constraints) {
       throw new BadRequestException(constraints[Object.keys(constraints)[0]]);
     }
-    throw new BadRequestException('Unknown validation error');
+    throw new BadRequestException('Unknown validate error');
   }
   return dto;
 };
