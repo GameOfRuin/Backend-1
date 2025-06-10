@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import logger from '../../logger';
-import { validate } from '../../validation';
+import { validate } from '../../validate';
 import { LoginUserDto, RegisterUserDto } from './DTO';
 
 export const userRouter = express.Router();
