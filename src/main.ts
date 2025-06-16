@@ -1,11 +1,14 @@
 import 'reflect-metadata';
+import { config } from 'dotenv';
 import express from 'express';
 import { logRoutes } from './bootstrap';
+import { appConfig } from './config';
 import logger from './logger';
 import { errorHandler } from './middlewares';
-import { scriptRouter } from './modules/script/script.router';
 import { taskRouter } from './modules/task/task.router';
 import { userRouter } from './modules/user/user.router';
+
+config();
 
 const bootstrap = () => {
   const server = express();
@@ -13,15 +16,14 @@ const bootstrap = () => {
   server.use(express.json());
 
   server.use('/task', taskRouter);
-  server.use('/script', scriptRouter);
   server.use('/user', userRouter);
 
   server.use(errorHandler);
 
   logRoutes(server);
 
-  server.listen(3000, () => {
-    logger.info('Запуск сервера');
+  server.listen(appConfig.port, () => {
+    logger.info(`Server started on port ${appConfig.port}`);
   });
 };
 

@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import logger from '../../logger';
 import { IdNumberDto } from '../../shared';
-import { validate } from '../../validation';
+import { validate } from '../../validate';
 
 export const scriptRouter = express.Router();
 
