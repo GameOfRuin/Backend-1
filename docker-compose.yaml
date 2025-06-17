@@ -1,0 +1,30 @@
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:17-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: backend
+
+  redis:
+    container_name: redis
+    image: redis:7-alpine
+    command: redis-server --requirepass redispassword
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  rabbit:
+    container_name: rabbit
+    image: rabbitmq:3-management-alpine
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: rabbit
+      RABBITMQ_DEFAULT_PASS: rabbitpassword
