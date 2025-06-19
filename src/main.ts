@@ -3,6 +3,7 @@ import express from 'express';
 import { Container } from 'inversify';
 import { logRoutes } from './bootstrap';
 import { appConfig } from './config';
+import { connectToPostgresql } from './database';
 import logger from './logger';
 import { errorHandler } from './middlewares';
 import { ScriptController } from './modules/script/script.controller';
@@ -12,7 +13,9 @@ import TaskModule from './modules/task/task.module';
 import { UserController } from './modules/user/user.controller';
 import UserModule from './modules/user/user.module';
 
-const bootstrap = () => {
+const bootstrap = async () => {
+  await connectToPostgresql();
+
   const app = Container.merge(UserModule, TaskModule, ScriptModule);
 
   const server = express();
