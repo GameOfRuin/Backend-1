@@ -1,7 +1,6 @@
 import { injectable } from 'inversify';
 import { UserEntity } from '../../database/entities/user.entity';
-import { BadRequestException } from '../../exceptions';
-import { NotFoundExceptione } from '../../exceptions/not-found.exception';
+import { ConflictException, UnauthorizedException } from '../../exceptions';
 import logger from '../../logger';
 import { RegisterUserDto } from './dto';
 
@@ -12,7 +11,7 @@ export class UserService {
 
     const exist = await UserEntity.findOne({ where: { email: dto.email } });
     if (exist) {
-      throw new BadRequestException('Пользователь с таким email уже существует');
+      throw new ConflictException('Такой email уже существует');
     }
 
     const user = await UserEntity.create({
@@ -30,7 +29,7 @@ export class UserService {
       where: { email: dto.email, password: dto.password },
     });
     if (!login) {
-      throw new NotFoundExceptione('Не найден email или пароль');
+      throw new UnauthorizedException('Не найден email или неправильный пароль');
     }
 
     return { login };

@@ -1,4 +1,4 @@
-export class NotFoundExceptione extends Error {
+export class UnauthorizedException extends Error {
   public readonly code = 404;
 
   constructor(message = 'Not Found') {
