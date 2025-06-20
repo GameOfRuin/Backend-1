@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import 'express-async-errors';
 import express from 'express';
 import { Container } from 'inversify';
 import { logRoutes } from './bootstrap';
