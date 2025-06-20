@@ -1,6 +1,7 @@
 import { Sequelize } from 'sequelize-typescript';
 import { postgresConfig } from '../config';
 import logger from '../logger';
+import { UserEntity } from './entities/user.entity';
 
 export const connectToPostgresql = async () => {
   const sequelize = new Sequelize({
@@ -17,4 +18,8 @@ export const connectToPostgresql = async () => {
     logger.error(error);
     throw error;
   }
+
+  sequelize.addModels([UserEntity]);
+
+  await sequelize.sync({ alter: true });
 };

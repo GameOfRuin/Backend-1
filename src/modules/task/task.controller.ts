@@ -1,8 +1,8 @@
 import { Request, Response, Router } from 'express';
 import { inject, injectable } from 'inversify';
-import { IdNumberDto } from '../../shared';
+import { IdNumberDto, PaginationDto } from '../../shared';
 import { validate } from '../../validate';
-import { CreateTaskDto, PaginationDto } from './dto';
+import { CreateTaskDto } from './dto';
 import { TaskService } from './task.service';
 
 @injectable()

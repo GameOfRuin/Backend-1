@@ -1,5 +1,4 @@
-import { Type } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsString, MaxLength } from 'class-validator';
 
 enum TaskStatus {
   progress = 'progress',
@@ -26,11 +25,4 @@ export class CreateTaskDto {
   @IsString()
   @MaxLength(256)
   description: string;
-}
-
-export class PaginationDto {
-  @IsNumber()
-  @Type(() => Number)
-  @IsOptional()
-  limit: number = 10;
 }

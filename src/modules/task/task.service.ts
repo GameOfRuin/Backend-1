@@ -1,6 +1,7 @@
 import { injectable } from 'inversify';
 import logger from '../../logger';
-import { CreateTaskDto, PaginationDto } from './dto';
+import { PaginationDto } from '../../shared';
+import { CreateTaskDto } from './dto';
 
 @injectable()
 export class TaskService {
