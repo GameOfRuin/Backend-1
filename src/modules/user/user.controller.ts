@@ -1,7 +1,7 @@
 import { Request, Response, Router } from 'express';
 import { inject, injectable } from 'inversify';
 import { validate } from '../../validate';
-import { RegisterUserDto } from './dto';
+import { LoginUserDto, RegisterUserDto } from './dto';
 import { UserService } from './user.service';
 
 @injectable()
@@ -26,7 +26,7 @@ export class UserController {
     res.json(result);
   }
   async login(req: Request, res: Response) {
-    const dto = validate(RegisterUserDto, req.body);
+    const dto = validate(LoginUserDto, req.body);
 
     const result = await this.userService.login(dto);
 

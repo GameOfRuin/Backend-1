@@ -33,10 +33,10 @@ export class TaskController {
     res.json(result);
   }
 
-  createTask(req: Request, res: Response) {
+  async createTask(req: Request, res: Response) {
     const dto = validate(CreateTaskDto, req.body);
 
-    const result = this.taskService.createTask(dto);
+    const result = await this.taskService.createTask(dto);
 
     res.json(result);
   }

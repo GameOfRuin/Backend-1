@@ -2,7 +2,7 @@ import { injectable } from 'inversify';
 import { UserEntity } from '../../database/entities/user.entity';
 import { ConflictException, UnauthorizedException } from '../../exceptions';
 import logger from '../../logger';
-import { RegisterUserDto } from './dto';
+import { LoginUserDto, RegisterUserDto } from './dto';
 
 @injectable()
 export class UserService {
@@ -20,9 +20,9 @@ export class UserService {
       password: dto.password,
     });
 
-    return { user };
+    return { name: dto.name, email: dto.email };
   }
-  async login(dto: RegisterUserDto) {
+  async login(dto: LoginUserDto) {
     logger.info(`Пришли данные для логина. email = ${dto.email}`);
 
     const login = await UserEntity.findOne({
@@ -32,6 +32,6 @@ export class UserService {
       throw new UnauthorizedException('Не найден email или неправильный пароль');
     }
 
-    return { login };
+    return { email: dto.email };
   }
 }

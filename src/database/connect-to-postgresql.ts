@@ -2,6 +2,7 @@ import { Sequelize } from 'sequelize-typescript';
 import { postgresConfig } from '../config';
 import logger from '../logger';
 import { UserEntity } from './entities/user.entity';
+import { TaskEntity } from './entities/task.entity';
 
 export const connectToPostgresql = async () => {
   const sequelize = new Sequelize({
@@ -19,7 +20,7 @@ export const connectToPostgresql = async () => {
     throw error;
   }
 
-  sequelize.addModels([UserEntity]);
+  sequelize.addModels([UserEntity, TaskEntity]);
 
   await sequelize.sync({ alter: true });
 };
