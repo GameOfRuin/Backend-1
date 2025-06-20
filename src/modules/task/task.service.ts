@@ -7,10 +7,15 @@ import { CreateTaskDto } from './dto';
 
 @injectable()
 export class TaskService {
-  getTasks(dto: PaginationDto) {
-    logger.info(`Чтение списка задач`);
+  async getTasks(dto: PaginationDto) {
+    logger.info(`Запрос на чтение списка задач`);
 
-    return { limit: `${dto.limit}` };
+    const { limit, offset } = dto;
+
+    return await TaskEntity.findAll({
+      limit,
+      offset,
+    });
   }
 
   async getTaskById(idTask: number) {

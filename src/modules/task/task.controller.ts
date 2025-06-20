@@ -17,10 +17,10 @@ export class TaskController {
     this.router.post('/', (req: Request, res: Response) => this.createTask(req, res));
     this.router.get('/:id', (req: Request, res: Response) => this.getTaskById(req, res));
   }
-  getTasks(req: Request, res: Response) {
+  async getTasks(req: Request, res: Response) {
     const dto = validate(PaginationDto, req.query);
 
-    const result = this.taskService.getTasks(dto);
+    const result = await this.taskService.getTasks(dto);
 
     res.json(result);
   }
