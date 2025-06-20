@@ -48,4 +48,18 @@ export class TaskService {
 
     return { message: `Вы создали задачу ${dto.title}` };
   }
+
+  async updateTask(dto: CreateTaskDto, idTask: number) {
+    logger.info(`Изменение задачи по id=${dto.title}`);
+
+    const findById = await TaskEntity.findOne({ where: { id: idTask } });
+
+    if (!findById) {
+      throw new NotFoundException('Такой задачи не найдено');
+    }
+
+    const updated = await TaskEntity.update(dto, { where: { id: idTask } });
+
+    return { message: `Обновлена задача ${idTask}` };
+  }
 }
