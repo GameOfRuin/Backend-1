@@ -17,6 +17,7 @@ export class TaskController {
     this.router.post('/', (req: Request, res: Response) => this.createTask(req, res));
     this.router.get('/:id', (req: Request, res: Response) => this.getTaskById(req, res));
     this.router.put('/:id', (req: Request, res: Response) => this.updateTask(req, res));
+    this.router.delete('/:id', (req: Request, res: Response) => this.deleteOne(req, res));
   }
   async getTasks(req: Request, res: Response) {
     const dto = validate(PaginationDto, req.query);
@@ -46,6 +47,13 @@ export class TaskController {
     const dto = validate(CreateTaskDto, req.body);
 
     const result = await this.taskService.updateTask(dto, taskId);
+
+    res.json(result);
+  }
+  async deleteOne(req: Request, res: Response) {
+    const { id } = validate(IdNumberDto, req.params);
+
+    const result = await this.taskService.deleteOne(id);
 
     res.json(result);
   }

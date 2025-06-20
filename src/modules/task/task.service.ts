@@ -49,7 +49,7 @@ export class TaskService {
     return { message: `Вы создали задачу ${dto.title}` };
   }
 
-  async updateTask(dto: CreateTaskDto, idTask: number) {
+  async updateTask(dto: CreateTaskDto, idTask: TaskEntity['id']) {
     logger.info(`Изменение задачи по id=${dto.title}`);
 
     const findById = await TaskEntity.findOne({ where: { id: idTask } });
@@ -61,5 +61,14 @@ export class TaskService {
     const updated = await TaskEntity.update(dto, { where: { id: idTask } });
 
     return { message: `Обновлена задача ${idTask}` };
+  }
+  async deleteOne(id: TaskEntity['id']) {
+    logger.info(`Удаление задачи id=${id}`);
+
+    await this.getTaskById(id);
+
+    const deleted = await TaskEntity.destroy({ where: { id } });
+
+    return { success: Boolean(deleted) };
   }
 }
