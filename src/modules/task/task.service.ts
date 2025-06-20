@@ -1,9 +1,9 @@
 import { injectable } from 'inversify';
+import { TaskEntity } from '../../database/entities/task.entity';
+import { ConflictException } from '../../exceptions';
 import logger from '../../logger';
 import { PaginationDto } from '../../shared';
 import { CreateTaskDto } from './dto';
-import { TaskEntity } from '../../database/entities/task.entity';
-import { ConflictException } from '../../exceptions';
 
 @injectable()
 export class TaskService {

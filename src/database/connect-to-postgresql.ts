@@ -1,8 +1,8 @@
 import { Sequelize } from 'sequelize-typescript';
 import { postgresConfig } from '../config';
 import logger from '../logger';
-import { UserEntity } from './entities/user.entity';
 import { TaskEntity } from './entities/task.entity';
+import { UserEntity } from './entities/user.entity';
 
 export const connectToPostgresql = async () => {
   const sequelize = new Sequelize({
