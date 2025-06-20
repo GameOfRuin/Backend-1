@@ -1,6 +1,6 @@
 import { injectable } from 'inversify';
 import { TaskEntity } from '../../database/entities/task.entity';
-import { ConflictException } from '../../exceptions';
+import { ConflictException, NotFoundException } from '../../exceptions';
 import logger from '../../logger';
 import { PaginationDto } from '../../shared';
 import { CreateTaskDto } from './dto';
@@ -13,10 +13,16 @@ export class TaskService {
     return { limit: `${dto.limit}` };
   }
 
-  getTaskById(id: number) {
-    logger.info(`Чтение задачи по id=${id}`);
+  async getTaskById(idTask: number) {
+    logger.info(`Чтение задачи по id=${idTask}`);
 
-    return { message: `Вы пытаетесь прочитать задачу id=${id}` };
+    const findById = await TaskEntity.findOne({ where: { id: idTask } });
+
+    if (!findById) {
+      throw new NotFoundException('Такой задачи не найдено');
+    }
+
+    return findById;
   }
   async createTask(dto: CreateTaskDto) {
     logger.info(`Создание задачи`);

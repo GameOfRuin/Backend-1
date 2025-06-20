@@ -25,10 +25,10 @@ export class TaskController {
     res.json(result);
   }
 
-  getTaskById(req: Request, res: Response) {
-    const { id } = validate(IdNumberDto, req.params);
+  async getTaskById(req: Request, res: Response) {
+    const { id: taskId } = validate(IdNumberDto, req.params);
 
-    const result = this.taskService.getTaskById(id);
+    const result = await this.taskService.getTaskById(taskId);
 
     res.json(result);
   }
