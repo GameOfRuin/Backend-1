@@ -1,4 +1,12 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import {
+  BelongsTo,
+  Column,
+  DataType,
+  ForeignKey,
+  Model,
+  Table,
+} from 'sequelize-typescript';
+import { UserEntity } from './user.entity';
 
 @Table({ tableName: 'task' })
 export class TaskEntity extends Model {
@@ -33,4 +41,14 @@ export class TaskEntity extends Model {
     allowNull: true,
   })
   public description: string;
+
+  @ForeignKey(() => UserEntity)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  public assigneeId: number;
+
+  @BelongsTo(() => UserEntity, { as: 'assignee', foreignKey: 'assigneeId' })
+  public assignee: UserEntity;
 }

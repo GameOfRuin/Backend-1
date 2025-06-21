@@ -2,6 +2,7 @@ import { inject, injectable } from 'inversify';
 import { redisTaskKey, redisTasksKey } from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
 import { TaskEntity } from '../../database/entities/task.entity';
+import { UserEntity } from '../../database/entities/user.entity';
 import { ConflictException, NotFoundException } from '../../exceptions';
 import logger from '../../logger';
 import { PaginationDto } from '../../shared';
@@ -57,6 +58,7 @@ export class TaskService {
 
     return findById;
   }
+
   async createTask(dto: CreateTaskDto) {
     logger.info(`Создание задачи`);
 
@@ -72,24 +74,27 @@ export class TaskService {
       status: dto.status,
       description: dto.description,
       importance: dto.importance,
+      assigneeId: dto.assigneeId,
     });
 
-    return { message: `Вы создали задачу ${dto.title}` };
+    const task2 = await TaskEntity.findOne({
+      where: { assigneeId: 1 },
+      include: [UserEntity],
+    });
+
+    return { message: `Вы создали задачу ${dto.title}`, task2 };
   }
 
   async updateTask(dto: CreateTaskDto, idTask: TaskEntity['id']) {
     logger.info(`Изменение задачи по id=${dto.title}`);
 
-    const findById = await TaskEntity.findOne({ where: { id: idTask } });
-
-    if (!findById) {
-      throw new NotFoundException('Такой задачи не найдено');
-    }
+    await this.getTaskById(idTask);
 
     const updated = await TaskEntity.update(dto, { where: { id: idTask } });
 
     return { message: `Обновлена задача ${idTask}` };
   }
+
   async deleteOne(id: TaskEntity['id']) {
     logger.info(`Удаление задачи id=${id}`);
 
