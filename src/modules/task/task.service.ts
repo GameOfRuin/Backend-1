@@ -1,4 +1,6 @@
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
+import { redisTaskKey } from '../../cache/redis.keys';
+import { RedisService } from '../../cache/redis.service';
 import { TaskEntity } from '../../database/entities/task.entity';
 import { ConflictException, NotFoundException } from '../../exceptions';
 import logger from '../../logger';
@@ -7,6 +9,11 @@ import { CreateTaskDto } from './dto';
 
 @injectable()
 export class TaskService {
+  constructor(
+    @inject(RedisService)
+    private readonly redis: RedisService,
+  ) {}
+
   async getTasks(dto: PaginationDto) {
     logger.info(`Запрос на чтение списка задач`);
 
@@ -18,14 +25,22 @@ export class TaskService {
     });
   }
 
-  async getTaskById(idTask: number) {
+  async getTaskById(idTask: TaskEntity['id']) {
     logger.info(`Чтение задачи по id=${idTask}`);
+
+    const cacheTask = await this.redis.get<TaskEntity>(redisTaskKey(idTask));
+
+    if (cacheTask) {
+      return cacheTask;
+    }
 
     const findById = await TaskEntity.findOne({ where: { id: idTask } });
 
     if (!findById) {
       throw new NotFoundException('Такой задачи не найдено');
     }
+
+    await this.redis.set(redisTaskKey(idTask), findById, { EX: 300 });
 
     return findById;
   }
