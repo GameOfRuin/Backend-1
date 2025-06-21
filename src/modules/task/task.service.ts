@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify';
-import { redisTaskKey } from '../../cache/redis.keys';
+import { redisTaskKey, redisTasksKey } from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
 import { TaskEntity } from '../../database/entities/task.entity';
 import { ConflictException, NotFoundException } from '../../exceptions';
@@ -19,10 +19,23 @@ export class TaskService {
 
     const { limit, offset } = dto;
 
-    return await TaskEntity.findAll({
+    const cacheTasks = await this.redis.get<TaskEntity>(redisTasksKey(limit, offset));
+
+    if (cacheTasks) {
+      return cacheTasks;
+    }
+
+    const tasks = await TaskEntity.findAll({
       limit,
       offset,
     });
+    if (!tasks) {
+      throw new NotFoundException('Задач не найдено');
+    }
+
+    await this.redis.set(redisTasksKey(limit, offset), tasks, { EX: 300 });
+
+    return tasks;
   }
 
   async getTaskById(idTask: TaskEntity['id']) {
