@@ -1,23 +1,107 @@
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
+import { redisTaskKey, redisTasksKey } from '../../cache/redis.keys';
+import { RedisService } from '../../cache/redis.service';
+import { TaskEntity } from '../../database/entities/task.entity';
+import { UserEntity } from '../../database/entities/user.entity';
+import { ConflictException, NotFoundException } from '../../exceptions';
 import logger from '../../logger';
-import { CreateTaskDto, PaginationDto } from './dto';
+import { PaginationDto } from '../../shared';
+import { CreateTaskDto } from './dto';
 
 @injectable()
 export class TaskService {
-  getTasks(dto: PaginationDto) {
-    logger.info(`Чтение списка задач`);
+  constructor(
+    @inject(RedisService)
+    private readonly redis: RedisService,
+  ) {}
 
-    return { limit: `${dto.limit}` };
+  async getTasks(dto: PaginationDto) {
+    logger.info(`Запрос на чтение списка задач`);
+
+    const { limit, offset } = dto;
+
+    const cacheTasks = await this.redis.get<TaskEntity>(redisTasksKey(limit, offset));
+
+    if (cacheTasks) {
+      return cacheTasks;
+    }
+
+    const tasks = await TaskEntity.findAll({
+      limit,
+      offset,
+    });
+    if (!tasks) {
+      throw new NotFoundException('Задач не найдено');
+    }
+
+    await this.redis.set(redisTasksKey(limit, offset), tasks, { EX: 300 });
+
+    return tasks;
   }
 
-  getTaskById(id: number) {
-    logger.info(`Чтение задачи по id=${id}`);
+  async getTaskById(idTask: TaskEntity['id']) {
+    logger.info(`Чтение задачи по id=${idTask}`);
 
-    return { message: `Вы пытаетесь прочитать задачу id=${id}` };
+    const cacheTask = await this.redis.get<TaskEntity>(redisTaskKey(idTask));
+
+    if (cacheTask) {
+      return cacheTask;
+    }
+
+    const findById = await TaskEntity.findOne({ where: { id: idTask } });
+
+    if (!findById) {
+      throw new NotFoundException('Такой задачи не найдено');
+    }
+
+    await this.redis.set(redisTaskKey(idTask), findById, { EX: 300 });
+
+    return findById;
   }
-  createTask(dto: CreateTaskDto) {
+
+  async createTask(dto: CreateTaskDto) {
     logger.info(`Создание задачи`);
 
-    return { message: `Вы создали задачу ${dto.title}` };
+    const task = await TaskEntity.findOne({
+      where: { title: dto.title },
+    });
+    if (task) {
+      throw new ConflictException('Такая задача уже есть');
+    }
+
+    const newTask = await TaskEntity.create({
+      title: dto.title,
+      status: dto.status,
+      description: dto.description,
+      importance: dto.importance,
+      assigneeId: dto.assigneeId,
+    });
+
+    const task2 = await TaskEntity.findOne({
+      where: { assigneeId: 1 },
+      include: [UserEntity],
+    });
+
+    return { message: `Вы создали задачу ${dto.title}`, task2 };
+  }
+
+  async updateTask(dto: CreateTaskDto, idTask: TaskEntity['id']) {
+    logger.info(`Изменение задачи по id=${dto.title}`);
+
+    await this.getTaskById(idTask);
+
+    const updated = await TaskEntity.update(dto, { where: { id: idTask } });
+
+    return { message: `Обновлена задача ${idTask}` };
+  }
+
+  async deleteOne(id: TaskEntity['id']) {
+    logger.info(`Удаление задачи id=${id}`);
+
+    await this.getTaskById(id);
+
+    const deleted = await TaskEntity.destroy({ where: { id } });
+
+    return { success: Boolean(deleted) };
   }
 }
