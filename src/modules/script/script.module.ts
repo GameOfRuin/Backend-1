@@ -1,10 +1,10 @@
-import { Container } from 'inversify';
+import { ContainerModule } from 'inversify';
 import { ScriptController } from './script.controller';
 import { ScriptService } from './script.service';
 
-const ScriptModule = new Container();
-
-ScriptModule.bind(ScriptService).toSelf().inSingletonScope();
-ScriptModule.bind(ScriptController).toSelf().inSingletonScope();
+const ScriptModule = new ContainerModule(({ bind }) => {
+  bind(ScriptService).toSelf().inSingletonScope();
+  bind(ScriptController).toSelf().inSingletonScope();
+});
 
 export default ScriptModule;

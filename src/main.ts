@@ -17,15 +17,17 @@ import UserModule from './modules/user/user.module';
 const bootstrap = async () => {
   await connectToPostgresql();
 
-  const app = Container.merge(UserModule, TaskModule, ScriptModule);
+  const appContainer = new Container();
+
+  await appContainer.load(UserModule, TaskModule, ScriptModule);
 
   const server = express();
 
   server.use(express.json());
 
-  const userController = app.get(UserController);
-  const taskController = app.get(TaskController);
-  const scriptController = app.get(ScriptController);
+  const userController = appContainer.get(UserController);
+  const taskController = appContainer.get(TaskController);
+  const scriptController = appContainer.get(ScriptController);
   server.use('/user', userController.router);
   server.use('/task', taskController.router);
   server.use('/script', scriptController.router);
