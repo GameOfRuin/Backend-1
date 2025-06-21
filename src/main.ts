@@ -3,6 +3,7 @@ import 'express-async-errors';
 import express from 'express';
 import { Container } from 'inversify';
 import { logRoutes } from './bootstrap';
+import RedisModule from './cache/redis.module';
 import { appConfig } from './config';
 import { connectToPostgresql } from './database';
 import logger from './logger';
@@ -19,7 +20,7 @@ const bootstrap = async () => {
 
   const appContainer = new Container();
 
-  await appContainer.load(UserModule, TaskModule, ScriptModule);
+  await appContainer.load(UserModule, TaskModule, ScriptModule, RedisModule);
 
   const server = express();
 

@@ -1,12 +1,13 @@
 import { config as readEnv } from 'dotenv';
 import * as process from 'node:process';
 import { validate } from '../validate';
-import { AppConfigDto } from './dto';
+import { AppConfigDto, PostgresConfigDto } from './dto';
 
 readEnv();
 
 const rawConfig = {
   port: process.env.PORT,
+  redisUrl: process.env.REDIS_URL,
 };
 
 const rawPostgres = {
@@ -18,4 +19,4 @@ const rawPostgres = {
 };
 
 export const appConfig = validate(AppConfigDto, rawConfig);
-export const postgresConfig = validate(AppConfigDto, rawPostgres);
+export const postgresConfig = validate(PostgresConfigDto, rawPostgres);
