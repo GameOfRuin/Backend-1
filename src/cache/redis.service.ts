@@ -23,6 +23,7 @@ export class RedisService {
     }
   }
 
+  // @typescript-eslint/no-explicit-any
   async set(key: string, value: Record<string, any>, options?: SetOptions) {
     const json = JSON.stringify(value);
 
