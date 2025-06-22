@@ -62,11 +62,6 @@ export class TaskService {
 
     await this.redis.set(redisTaskKey(idTask), findById, { EX: 300 });
 
-    // const task2 = await TaskEntity.findOne({
-    //   where: { assigneeId: findById.assigneeId },
-    //   include: [{ model: UserEntity, attributes: ['name'] }],
-    // });
-
     return { findById };
   }
 
@@ -76,8 +71,14 @@ export class TaskService {
     const task = await TaskEntity.findOne({
       where: { title: dto.title },
     });
+    const user = await UserEntity.findOne({
+      where: { id: dto.assigneeId },
+    });
     if (task) {
       throw new ConflictException('Такая задача уже есть');
+    }
+    if (!user) {
+      throw new NotFoundException('Исполнитель не найден');
     }
 
     const newTask = await TaskEntity.create({
@@ -88,12 +89,7 @@ export class TaskService {
       assigneeId: dto.assigneeId,
     });
 
-    const task2 = await TaskEntity.findOne({
-      where: { assigneeId: 1 },
-      include: [UserEntity],
-    });
-
-    return { message: `Вы создали задачу ${dto.title}`, task2 };
+    return { message: `Вы создали задачу ${dto.title}` };
   }
 
   async updateTask(dto: CreateTaskDto, idTask: TaskEntity['id']) {
