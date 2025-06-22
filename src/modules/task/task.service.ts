@@ -75,14 +75,8 @@ export class TaskService {
     if (task) {
       throw new ConflictException('Такая задача уже есть');
     }
-    if (dto.assigneeId) {
-      const user = await UserEntity.findOne({
-        where: { id: dto.assigneeId },
-      });
-      if (!user) {
-        throw new NotFoundException('Исполнитель не найден');
-      }
-    }
+
+    await this.findUser(dto.assigneeId);
 
     const newTask = await TaskEntity.create({
       title: dto.title,
@@ -96,9 +90,11 @@ export class TaskService {
   }
 
   async updateTask(dto: CreateTaskDto, idTask: TaskEntity['id']) {
-    logger.info(`Изменение задачи по id=${dto.title}`);
+    logger.info(`Изменение задачи по id=${idTask}`);
 
     await this.getTaskById(idTask);
+
+    await this.findUser(dto.assigneeId);
 
     const updated = await TaskEntity.update(dto, { where: { id: idTask } });
 
@@ -113,5 +109,16 @@ export class TaskService {
     const deleted = await TaskEntity.destroy({ where: { id } });
 
     return { success: Boolean(deleted) };
+  }
+
+  async findUser(id: UserEntity['id'] | undefined) {
+    if (id) {
+      const user = await UserEntity.findOne({
+        where: { id: id },
+      });
+      if (!user) {
+        throw new NotFoundException('Исполнитель не найден');
+      }
+    }
   }
 }
