@@ -29,6 +29,8 @@ export class TaskService {
     const tasks = await TaskEntity.findAll({
       limit,
       offset,
+      attributes: ['title', 'status', 'importance', 'description'],
+      include: [{ model: UserEntity, attributes: ['id', 'name'] }],
     });
     if (!tasks) {
       throw new NotFoundException('Задач не найдено');
@@ -48,7 +50,11 @@ export class TaskService {
       return cacheTask;
     }
 
-    const findById = await TaskEntity.findOne({ where: { id: idTask } });
+    const findById = await TaskEntity.findOne({
+      where: { id: idTask },
+      attributes: ['title', 'status', 'importance', 'description'],
+      include: [{ model: UserEntity, attributes: ['id', 'name'] }],
+    });
 
     if (!findById) {
       throw new NotFoundException('Такой задачи не найдено');
@@ -56,7 +62,12 @@ export class TaskService {
 
     await this.redis.set(redisTaskKey(idTask), findById, { EX: 300 });
 
-    return findById;
+    // const task2 = await TaskEntity.findOne({
+    //   where: { assigneeId: findById.assigneeId },
+    //   include: [{ model: UserEntity, attributes: ['name'] }],
+    // });
+
+    return { findById };
   }
 
   async createTask(dto: CreateTaskDto) {
