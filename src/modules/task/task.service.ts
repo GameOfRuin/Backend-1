@@ -71,14 +71,17 @@ export class TaskService {
     const task = await TaskEntity.findOne({
       where: { title: dto.title },
     });
-    const user = await UserEntity.findOne({
-      where: { id: dto.assigneeId },
-    });
+
     if (task) {
       throw new ConflictException('Такая задача уже есть');
     }
-    if (!user) {
-      throw new NotFoundException('Исполнитель не найден');
+    if (dto.assigneeId) {
+      const user = await UserEntity.findOne({
+        where: { id: dto.assigneeId },
+      });
+      if (!user) {
+        throw new NotFoundException('Исполнитель не найден');
+      }
     }
 
     const newTask = await TaskEntity.create({
