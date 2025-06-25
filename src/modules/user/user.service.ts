@@ -14,13 +14,18 @@ export class UserService {
       throw new ConflictException('Такой email уже существует');
     }
 
-    const user = await UserEntity.create({
+    const newUser = await UserEntity.create({
       name: dto.name,
       email: dto.email,
       password: dto.password,
     });
 
-    return { name: dto.name, email: dto.email };
+    const user = {
+      email: newUser.email,
+      name: newUser.name,
+    };
+
+    return user;
   }
   async login(dto: LoginUserDto) {
     logger.info(`Пришли данные для логина. email = ${dto.email}`);
