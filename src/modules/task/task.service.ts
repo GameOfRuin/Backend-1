@@ -90,6 +90,8 @@ export class TaskService {
 
     await TaskEntity.update(dto, { where: { id: idTask } });
 
+    await this.redis.delete(redisTaskKey(idTask));
+
     return { message: `Обновлена задача ${idTask}` };
   }
 

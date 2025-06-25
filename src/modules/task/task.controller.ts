@@ -3,6 +3,7 @@ import { inject, injectable } from 'inversify';
 import { IdNumberDto, PaginationDto } from '../../shared';
 import { validate } from '../../validate';
 import { CreateTaskDto } from './dto';
+import { UpdateTaskDto } from './dto/update.dto';
 import { TaskService } from './task.service';
 
 @injectable()
@@ -44,7 +45,7 @@ export class TaskController {
   }
   async updateTask(req: Request, res: Response) {
     const { id: taskId } = validate(IdNumberDto, req.params);
-    const dto = validate(CreateTaskDto, req.body);
+    const dto = validate(UpdateTaskDto, req.body);
 
     const result = await this.taskService.updateTask(dto, taskId);
 
