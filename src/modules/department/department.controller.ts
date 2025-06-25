@@ -1,6 +1,6 @@
 import { Request, Response, Router } from 'express';
 import { inject, injectable } from 'inversify';
-import { IdNumberDto, PaginationDto } from '../../shared';
+import { IdNumberDto } from '../../shared';
 import { validate } from '../../validate';
 import { DepartmentService } from './department.service';
 import { CreateDepartmentDto } from './dto';
@@ -17,10 +17,10 @@ export class DepartmentController {
       this.createDepartment(req, res),
     );
     this.router.get('/', (req: Request, res: Response) =>
-      this.fetchComplexScript(req, res),
+      this.getAllDepartment(req, res),
     );
     this.router.delete('/:id', (req: Request, res: Response) =>
-      this.fetchComplexScript(req, res),
+      this.deleteDepartment(req, res),
     );
   }
 
@@ -32,26 +32,16 @@ export class DepartmentController {
     res.json(result);
   }
 
-  fetchComplexScript(req: Request, res: Response) {
-    const dto = validate(PaginationDto, req.query);
-
-    const result = this.departmentService.fetchComplexScript(dto);
+  async getAllDepartment(req: Request, res: Response) {
+    const result = await this.departmentService.getAllDepartments();
 
     res.json(result);
   }
 
-  getScriptById(req: Request, res: Response) {
+  async deleteDepartment(req: Request, res: Response) {
     const { id } = validate(IdNumberDto, req.params);
 
-    const result = this.departmentService.getScriptById(id);
-
-    res.json(result);
-  }
-
-  getComplexScriptById(req: Request, res: Response) {
-    const { id } = validate(IdNumberDto, req.params);
-
-    const result = this.departmentService.getComplexScriptById(id);
+    const result = this.departmentService.deleteDepartment(id);
 
     res.json(result);
   }

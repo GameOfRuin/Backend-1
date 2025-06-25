@@ -1,8 +1,7 @@
 import { injectable } from 'inversify';
 import { DepartmentEntity } from '../../database/entities/department.entity';
-import { ConflictException } from '../../exceptions';
+import { ConflictException, NotFoundException } from '../../exceptions';
 import logger from '../../logger';
-import { PaginationDto } from '../../shared';
 import { CreateDepartmentDto } from './dto';
 
 @injectable()
@@ -18,20 +17,25 @@ export class DepartmentService {
     return await DepartmentEntity.create({ ...dto });
   }
 
-  fetchComplexScript(dto: PaginationDto) {
-    logger.info(`Пришел запрос на чтение сложных скриптов`);
+  async getAllDepartments() {
+    logger.info(`Запрос депортаментв`);
 
-    return { limit: `${dto.limit}` };
+    const department = await DepartmentEntity.findAll({
+      order: ['id'],
+    });
+
+    if (!department) {
+      throw new NotFoundException('Еще не создано ни одного департамента');
+    }
+
+    return department;
   }
 
-  getScriptById(id: number) {
-    logger.info(`Чтение скрипта по номеру=${id}`);
+  async deleteDepartment(id: DepartmentEntity['id']) {
+    logger.info(`Удаление депортамента id = ${id}`);
 
-    return { message: `Вы пытаетесь получить скрипт номеру=${id}` };
-  }
-  getComplexScriptById(id: number) {
-    logger.info(`Чтение сложного скрипта по номеру=${id}`);
+    await DepartmentEntity.destroy({ where: { id: id } });
 
-    return { message: `Вы пытаетесь получить сложный скрипт по номеру=${id}` };
+    return { massage: 'Депортамент удален' };
   }
 }
