@@ -21,6 +21,7 @@ export class UserService {
     });
 
     const user = {
+      id: newUser.id,
       email: newUser.email,
       name: newUser.name,
     };
