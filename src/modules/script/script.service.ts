@@ -1,6 +1,6 @@
 import { injectable } from 'inversify';
 import logger from '../../logger';
-import { PaginationDto } from './dto';
+import { PaginationDto } from '../../shared';
 
 @injectable()
 export class ScriptService {

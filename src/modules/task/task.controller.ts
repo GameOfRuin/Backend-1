@@ -1,8 +1,8 @@
 import { Request, Response, Router } from 'express';
 import { inject, injectable } from 'inversify';
-import { IdNumberDto } from '../../shared';
+import { IdNumberDto, PaginationDto } from '../../shared';
 import { validate } from '../../validate';
-import { CreateTaskDto, PaginationDto } from './dto';
+import { CreateTaskDto } from './dto';
 import { TaskService } from './task.service';
 
 @injectable()
@@ -16,27 +16,44 @@ export class TaskController {
     this.router.get('/', (req: Request, res: Response) => this.getTasks(req, res));
     this.router.post('/', (req: Request, res: Response) => this.createTask(req, res));
     this.router.get('/:id', (req: Request, res: Response) => this.getTaskById(req, res));
+    this.router.put('/:id', (req: Request, res: Response) => this.updateTask(req, res));
+    this.router.delete('/:id', (req: Request, res: Response) => this.deleteOne(req, res));
   }
-  getTasks(req: Request, res: Response) {
+  async getTasks(req: Request, res: Response) {
     const dto = validate(PaginationDto, req.query);
 
-    const result = this.taskService.getTasks(dto);
+    const result = await this.taskService.getTasks(dto);
 
     res.json(result);
   }
 
-  getTaskById(req: Request, res: Response) {
-    const { id } = validate(IdNumberDto, req.params);
+  async getTaskById(req: Request, res: Response) {
+    const { id: taskId } = validate(IdNumberDto, req.params);
 
-    const result = this.taskService.getTaskById(id);
+    const result = await this.taskService.getTaskById(taskId);
 
     res.json(result);
   }
 
-  createTask(req: Request, res: Response) {
+  async createTask(req: Request, res: Response) {
     const dto = validate(CreateTaskDto, req.body);
 
-    const result = this.taskService.createTask(dto);
+    const result = await this.taskService.createTask(dto);
+
+    res.json(result);
+  }
+  async updateTask(req: Request, res: Response) {
+    const { id: taskId } = validate(IdNumberDto, req.params);
+    const dto = validate(CreateTaskDto, req.body);
+
+    const result = await this.taskService.updateTask(dto, taskId);
+
+    res.json(result);
+  }
+  async deleteOne(req: Request, res: Response) {
+    const { id } = validate(IdNumberDto, req.params);
+
+    const result = await this.taskService.deleteOne(id);
 
     res.json(result);
   }

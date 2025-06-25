@@ -1,8 +1,11 @@
 import 'reflect-metadata';
+import 'express-async-errors';
 import express from 'express';
 import { Container } from 'inversify';
 import { logRoutes } from './bootstrap';
+import RedisModule from './cache/redis.module';
 import { appConfig } from './config';
+import { connectToPostgresql } from './database';
 import logger from './logger';
 import { errorHandler } from './middlewares';
 import { ScriptController } from './modules/script/script.controller';
@@ -12,16 +15,20 @@ import TaskModule from './modules/task/task.module';
 import { UserController } from './modules/user/user.controller';
 import UserModule from './modules/user/user.module';
 
-const bootstrap = () => {
-  const app = Container.merge(UserModule, TaskModule, ScriptModule);
+const bootstrap = async () => {
+  await connectToPostgresql();
+
+  const appContainer = new Container();
+
+  await appContainer.load(UserModule, TaskModule, ScriptModule, RedisModule);
 
   const server = express();
 
   server.use(express.json());
 
-  const userController = app.get(UserController);
-  const taskController = app.get(TaskController);
-  const scriptController = app.get(ScriptController);
+  const userController = appContainer.get(UserController);
+  const taskController = appContainer.get(TaskController);
+  const scriptController = appContainer.get(ScriptController);
   server.use('/user', userController.router);
   server.use('/task', taskController.router);
   server.use('/script', scriptController.router);
