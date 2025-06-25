@@ -1,8 +1,9 @@
+import { compare, hash } from 'bcrypt';
 import { injectable } from 'inversify';
 import { UserEntity } from '../../database/entities/user.entity';
 import { ConflictException, UnauthorizedException } from '../../exceptions';
 import logger from '../../logger';
-import { LoginUserDto, RegisterUserDto } from './dto';
+import { LoginUserDto, PasswordChangeDto, RegisterUserDto } from './dto';
 
 @injectable()
 export class UserService {
@@ -13,6 +14,8 @@ export class UserService {
     if (exist) {
       throw new ConflictException('Такой email уже существует');
     }
+
+    dto.password = await hash(dto.password, 10);
 
     const newUser = await UserEntity.create({
       name: dto.name,
@@ -31,13 +34,24 @@ export class UserService {
   async login(dto: LoginUserDto) {
     logger.info(`Пришли данные для логина. email = ${dto.email}`);
 
-    const login = await UserEntity.findOne({
-      where: { email: dto.email, password: dto.password },
+    const user = await UserEntity.findOne({
+      where: { email: dto.email },
     });
-    if (!login) {
+    if (!user || !(await compare(dto.password, user.password))) {
       throw new UnauthorizedException('Не найден email или неправильный пароль');
     }
 
     return { email: dto.email };
+  }
+  async passwordChange(dto: PasswordChangeDto) {
+    logger.info(`Пришли данные для логина. email = ${dto.email}`);
+
+    await this.login(dto);
+
+    dto.password = await hash(dto.password, 10);
+
+    await UserEntity.update(dto, { where: { email: dto.email } });
+
+    return { massage: 'Смена пароля' };
   }
 }

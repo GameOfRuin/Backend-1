@@ -1,7 +1,7 @@
 import { Request, Response, Router } from 'express';
 import { inject, injectable } from 'inversify';
 import { validate } from '../../validate';
-import { LoginUserDto, RegisterUserDto } from './dto';
+import { LoginUserDto, PasswordChangeDto, RegisterUserDto } from './dto';
 import { UserService } from './user.service';
 
 @injectable()
@@ -16,6 +16,9 @@ export class UserController {
       this.register(req, res),
     );
     this.router.post('/login', (req: Request, res: Response) => this.login(req, res));
+    this.router.put('/password/change', (req: Request, res: Response) =>
+      this.passwordChange(req, res),
+    );
   }
 
   async register(req: Request, res: Response) {
@@ -29,6 +32,13 @@ export class UserController {
     const dto = validate(LoginUserDto, req.body);
 
     const result = await this.userService.login(dto);
+
+    res.json(result);
+  }
+  async passwordChange(req: Request, res: Response) {
+    const dto = validate(PasswordChangeDto, req.body);
+
+    const result = await this.userService.passwordChange(dto);
 
     res.json(result);
   }
