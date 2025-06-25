@@ -1,12 +1,13 @@
 import { inject, injectable } from 'inversify';
+import { FindOptions, Op } from 'sequelize';
 import { redisTaskKey, redisTasksKey } from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
 import { TaskEntity } from '../../database/entities/task.entity';
 import { UserEntity } from '../../database/entities/user.entity';
 import { NotFoundException } from '../../exceptions';
 import logger from '../../logger';
-import { PaginationDto } from '../../shared';
 import { CreateTaskDto } from './dto';
+import { GetTaskListDto } from './dto/sort-by.dto';
 
 @injectable()
 export class TaskService {
@@ -15,23 +16,37 @@ export class TaskService {
     private readonly redis: RedisService,
   ) {}
 
-  async getTasks(dto: PaginationDto) {
+  async getTasks(dto: GetTaskListDto) {
     logger.info(`Запрос на чтение списка задач`);
 
-    const { limit, offset } = dto;
+    const { limit, offset, sortBy, sortDirection, search } = dto;
 
-    const cacheTasks = await this.redis.get<TaskEntity>(redisTasksKey(limit, offset));
+    // const cacheTasks = await this.redis.get<TaskEntity>(redisTasksKey(limit, offset));
+    //
+    // if (cacheTasks) {
+    //   return { limit, offset, cacheTasks };
+    // }
 
-    if (cacheTasks) {
-      return { limit, offset, cacheTasks };
+    const options: FindOptions = {
+      offset,
+      limit,
+      order: [[sortBy, sortDirection]],
+    };
+
+    if (search) {
+      const likePattern = `%${search}%`;
+      options.where = {
+        ...options.where,
+        [Op.or]: {
+          id: { [Op.iLike]: likePattern },
+          title: { [Op.iLike]: likePattern },
+          description: { [Op.iLike]: likePattern },
+        },
+      };
     }
 
-    const { rows, count } = await TaskEntity.findAndCountAll({
-      limit,
-      offset,
-      attributes: ['title', 'status', 'importance', 'description'],
-      include: [{ model: UserEntity, attributes: ['id', 'name'] }],
-    });
+    const { rows, count } = await TaskEntity.findAndCountAll(options);
+
     if (!rows) {
       throw new NotFoundException('Задач не найдено');
     }

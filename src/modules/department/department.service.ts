@@ -7,18 +7,18 @@ import { CreateDepartmentDto } from './dto';
 @injectable()
 export class DepartmentService {
   async createDepartment(dto: CreateDepartmentDto) {
-    logger.info(`Пришел запрос на создание депортамента`);
+    logger.info(`Пришел запрос на создание департамента`);
 
     const department = await DepartmentEntity.findOne({ where: { title: dto.title } });
     if (department) {
-      throw new ConflictException('Такой депортамент уже существует');
+      throw new ConflictException('Такой департамент уже существует');
     }
 
     return await DepartmentEntity.create({ ...dto });
   }
 
   async getAllDepartments() {
-    logger.info(`Запрос депортаментв`);
+    logger.info(`Запрос департаментов`);
 
     const department = await DepartmentEntity.findAll({
       order: ['id'],
@@ -32,10 +32,10 @@ export class DepartmentService {
   }
 
   async deleteDepartment(id: DepartmentEntity['id']) {
-    logger.info(`Удаление депортамента id = ${id}`);
+    logger.info(`Удаление департамента id = ${id}`);
 
     await DepartmentEntity.destroy({ where: { id: id } });
 
-    return { massage: 'Депортамент удален' };
+    return { massage: 'Департамент удален' };
   }
 }
