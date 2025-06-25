@@ -1,13 +1,21 @@
 import { injectable } from 'inversify';
+import { DepartmentEntity } from '../../database/entities/department.entity';
+import { ConflictException } from '../../exceptions';
 import logger from '../../logger';
 import { PaginationDto } from '../../shared';
+import { CreateDepartmentDto } from './dto';
 
 @injectable()
-export class ScriptService {
-  fetchScript(dto: PaginationDto) {
-    logger.info(`Пришел запрос на чтение скриптов`);
+export class DepartmentService {
+  async createDepartment(dto: CreateDepartmentDto) {
+    logger.info(`Пришел запрос на создание депортамента`);
 
-    return { limit: `${dto.limit}` };
+    const department = await DepartmentEntity.findOne({ where: { title: dto.title } });
+    if (department) {
+      throw new ConflictException('Такой депортамент уже существует');
+    }
+
+    return await DepartmentEntity.create({ ...dto });
   }
 
   fetchComplexScript(dto: PaginationDto) {
