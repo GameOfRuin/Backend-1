@@ -21,11 +21,11 @@ export class TaskService {
 
     const { limit, offset, sortBy, sortDirection, search } = dto;
 
-    // const cacheTasks = await this.redis.get<TaskEntity>(redisTasksKey(limit, offset));
-    //
-    // if (cacheTasks) {
-    //   return { limit, offset, cacheTasks };
-    // }
+    const cacheTasks = await this.redis.get<TaskEntity>(redisTasksKey(limit, offset));
+
+    if (cacheTasks) {
+      return cacheTasks;
+    }
 
     const options: FindOptions = {
       offset,
@@ -45,15 +45,15 @@ export class TaskService {
       };
     }
 
-    const { rows, count } = await TaskEntity.findAndCountAll(options);
+    const { rows, count: total } = await TaskEntity.findAndCountAll(options);
 
     if (!rows) {
       throw new NotFoundException('Задач не найдено');
     }
+    const response = { total, limit, offset, rows };
+    await this.redis.set(redisTasksKey(limit, offset), response, { EX: 300 });
 
-    await this.redis.set(redisTasksKey(limit, offset), rows, { EX: 300 });
-
-    return { total: count, limit, offset, rows };
+    return response;
   }
 
   async getTaskById(idTask: TaskEntity['id']) {
