@@ -22,12 +22,7 @@ export class UserService {
       email: dto.email,
       password: dto.password,
     });
-
-    const user = {
-      id: newUser.id,
-      email: newUser.email,
-      name: newUser.name,
-    };
+    const { password, ...user } = newUser.toJSON();
 
     return user;
   }
