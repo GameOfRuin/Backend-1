@@ -43,10 +43,10 @@ export class UserService {
 
     await this.login(dto);
 
-    dto.password = await hash(dto.password, 10);
+    dto.password = await hash(dto.newPassword, 10);
 
     await UserEntity.update(dto, { where: { email: dto.email } });
 
-    return { massage: 'Смена пароля' };
+    return { message: 'Смена пароля' };
   }
 }
