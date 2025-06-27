@@ -17,10 +17,10 @@ export class CreateTaskDto {
   title: string;
 
   @IsEnum(TaskStatus)
-  status: string;
+  status: TaskStatus;
 
   @IsEnum(TaskImportance)
-  importance: string;
+  importance: TaskImportance;
 
   @IsString()
   @MaxLength(256)
