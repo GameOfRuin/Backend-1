@@ -77,7 +77,7 @@ export class TaskService {
 
     await this.redis.set(redisTaskKey(idTask), task, { EX: 300 });
 
-    return { task };
+    return task;
   }
 
   async createTask(dto: CreateTaskDto) {
@@ -89,11 +89,7 @@ export class TaskService {
       ...dto,
     });
 
-    return await TaskEntity.findOne({
-      where: { id: newTask.id },
-      attributes: ['title', 'status', 'importance', 'description'],
-      include: [{ model: UserEntity, attributes: ['id', 'name'] }],
-    });
+    return await this.getTaskById(newTask.id);
   }
 
   async updateTask(dto: CreateTaskDto, idTask: TaskEntity['id']) {
@@ -107,7 +103,7 @@ export class TaskService {
 
     await this.redis.delete(redisTaskKey(idTask));
 
-    return { message: `Обновлена задача ${idTask}` };
+    return await this.getTaskById(idTask);
   }
 
   async deleteOne(id: TaskEntity['id']) {
