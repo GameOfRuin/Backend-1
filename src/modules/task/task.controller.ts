@@ -1,8 +1,10 @@
 import { Request, Response, Router } from 'express';
 import { inject, injectable } from 'inversify';
-import { IdNumberDto, PaginationDto } from '../../shared';
+import { IdNumberDto } from '../../shared';
 import { validate } from '../../validate';
 import { CreateTaskDto } from './dto';
+import { GetTaskListDto } from './dto/sort-by.dto';
+import { UpdateTaskDto } from './dto/update.dto';
 import { TaskService } from './task.service';
 
 @injectable()
@@ -20,7 +22,7 @@ export class TaskController {
     this.router.delete('/:id', (req: Request, res: Response) => this.deleteOne(req, res));
   }
   async getTasks(req: Request, res: Response) {
-    const dto = validate(PaginationDto, req.query);
+    const dto = validate(GetTaskListDto, req.query);
 
     const result = await this.taskService.getTasks(dto);
 
@@ -44,7 +46,7 @@ export class TaskController {
   }
   async updateTask(req: Request, res: Response) {
     const { id: taskId } = validate(IdNumberDto, req.params);
-    const dto = validate(CreateTaskDto, req.body);
+    const dto = validate(UpdateTaskDto, req.body);
 
     const result = await this.taskService.updateTask(dto, taskId);
 

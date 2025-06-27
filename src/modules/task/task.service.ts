@@ -1,12 +1,13 @@
 import { inject, injectable } from 'inversify';
+import { FindOptions, Op } from 'sequelize';
 import { redisTaskKey, redisTasksKey } from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
 import { TaskEntity } from '../../database/entities/task.entity';
 import { UserEntity } from '../../database/entities/user.entity';
-import { ConflictException, NotFoundException } from '../../exceptions';
+import { NotFoundException } from '../../exceptions';
 import logger from '../../logger';
-import { PaginationDto } from '../../shared';
 import { CreateTaskDto } from './dto';
+import { GetTaskListDto } from './dto/sort-by.dto';
 
 @injectable()
 export class TaskService {
@@ -15,30 +16,44 @@ export class TaskService {
     private readonly redis: RedisService,
   ) {}
 
-  async getTasks(dto: PaginationDto) {
+  async getTasks(dto: GetTaskListDto) {
     logger.info(`Запрос на чтение списка задач`);
 
-    const { limit, offset } = dto;
+    const { limit, offset, sortBy, sortDirection, search } = dto;
 
-    const cacheTasks = await this.redis.get<TaskEntity>(redisTasksKey(limit, offset));
+    // const cacheTasks = await this.redis.get<TaskEntity>(redisTasksKey(limit, offset));
+    //
+    // if (cacheTasks) {
+    //   return { limit, offset, cacheTasks };
+    // }
 
-    if (cacheTasks) {
-      return cacheTasks;
+    const options: FindOptions = {
+      offset,
+      limit,
+      order: [[sortBy, sortDirection]],
+    };
+
+    if (search) {
+      const likePattern = `%${search}%`;
+      options.where = {
+        ...options.where,
+        [Op.or]: {
+          id: { [Op.iLike]: likePattern },
+          title: { [Op.iLike]: likePattern },
+          description: { [Op.iLike]: likePattern },
+        },
+      };
     }
 
-    const tasks = await TaskEntity.findAll({
-      limit,
-      offset,
-      attributes: ['title', 'status', 'importance', 'description'],
-      include: [{ model: UserEntity, attributes: ['id', 'name'] }],
-    });
-    if (!tasks) {
+    const { rows, count } = await TaskEntity.findAndCountAll(options);
+
+    if (!rows) {
       throw new NotFoundException('Задач не найдено');
     }
 
-    await this.redis.set(redisTasksKey(limit, offset), tasks, { EX: 300 });
+    await this.redis.set(redisTasksKey(limit, offset), rows, { EX: 300 });
 
-    return tasks;
+    return { total: count, limit, offset, rows };
   }
 
   async getTaskById(idTask: TaskEntity['id']) {
@@ -50,43 +65,35 @@ export class TaskService {
       return cacheTask;
     }
 
-    const findById = await TaskEntity.findOne({
+    const task = await TaskEntity.findOne({
       where: { id: idTask },
       attributes: ['title', 'status', 'importance', 'description'],
       include: [{ model: UserEntity, attributes: ['id', 'name'] }],
     });
 
-    if (!findById) {
+    if (!task) {
       throw new NotFoundException('Такой задачи не найдено');
     }
 
-    await this.redis.set(redisTaskKey(idTask), findById, { EX: 300 });
+    await this.redis.set(redisTaskKey(idTask), task, { EX: 300 });
 
-    return { findById };
+    return { task };
   }
 
   async createTask(dto: CreateTaskDto) {
     logger.info(`Создание задачи`);
 
-    const task = await TaskEntity.findOne({
-      where: { title: dto.title },
-    });
-
-    if (task) {
-      throw new ConflictException('Такая задача уже есть');
-    }
-
     await this.findUser(dto.assigneeId);
 
     const newTask = await TaskEntity.create({
-      title: dto.title,
-      status: dto.status,
-      description: dto.description,
-      importance: dto.importance,
-      assigneeId: dto.assigneeId,
+      ...dto,
     });
 
-    return { message: `Вы создали задачу ${dto.title}` };
+    return await TaskEntity.findOne({
+      where: { id: newTask.id },
+      attributes: ['title', 'status', 'importance', 'description'],
+      include: [{ model: UserEntity, attributes: ['id', 'name'] }],
+    });
   }
 
   async updateTask(dto: CreateTaskDto, idTask: TaskEntity['id']) {
@@ -96,7 +103,9 @@ export class TaskService {
 
     await this.findUser(dto.assigneeId);
 
-    const updated = await TaskEntity.update(dto, { where: { id: idTask } });
+    await TaskEntity.update(dto, { where: { id: idTask } });
+
+    await this.redis.delete(redisTaskKey(idTask));
 
     return { message: `Обновлена задача ${idTask}` };
   }

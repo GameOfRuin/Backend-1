@@ -1,12 +1,13 @@
 import { Sequelize } from 'sequelize-typescript';
-import { postgresConfig } from '../config';
+import { appConfig } from '../config';
 import logger from '../logger';
+import { DepartmentEntity } from './entities/department.entity';
 import { TaskEntity } from './entities/task.entity';
 import { UserEntity } from './entities/user.entity';
 
 export const connectToPostgresql = async () => {
   const sequelize = new Sequelize({
-    ...postgresConfig,
+    ...appConfig.postgres,
     dialect: 'postgres',
     logging: false,
   });
@@ -20,7 +21,7 @@ export const connectToPostgresql = async () => {
     throw error;
   }
 
-  sequelize.addModels([UserEntity, TaskEntity]);
+  sequelize.addModels([UserEntity, TaskEntity, DepartmentEntity]);
 
   await sequelize.sync({ alter: true });
 };

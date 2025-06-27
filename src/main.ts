@@ -8,8 +8,8 @@ import { appConfig } from './config';
 import { connectToPostgresql } from './database';
 import logger from './logger';
 import { errorHandler } from './middlewares';
-import { ScriptController } from './modules/script/script.controller';
-import ScriptModule from './modules/script/script.module';
+import { DepartmentController } from './modules/department/department.controller';
+import DepartmentModule from './modules/department/department.module';
 import { TaskController } from './modules/task/task.controller';
 import TaskModule from './modules/task/task.module';
 import { UserController } from './modules/user/user.controller';
@@ -20,7 +20,7 @@ const bootstrap = async () => {
 
   const appContainer = new Container();
 
-  await appContainer.load(UserModule, TaskModule, ScriptModule, RedisModule);
+  await appContainer.load(UserModule, TaskModule, DepartmentModule, RedisModule);
 
   const server = express();
 
@@ -28,10 +28,10 @@ const bootstrap = async () => {
 
   const userController = appContainer.get(UserController);
   const taskController = appContainer.get(TaskController);
-  const scriptController = appContainer.get(ScriptController);
+  const departmentController = appContainer.get(DepartmentController);
   server.use('/user', userController.router);
   server.use('/task', taskController.router);
-  server.use('/script', scriptController.router);
+  server.use('/department', departmentController.router);
 
   server.use(errorHandler);
 
