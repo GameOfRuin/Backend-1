@@ -15,6 +15,10 @@ const rawConfig = {
     password: process.env.POSTGRESQL_PASSWORD,
     port: process.env.POSTGRESQL_PORT,
   },
+  jwt: {
+    accessSecret: process.env.JWT_ACCESS_SECRET,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
+  },
 };
 
 export const appConfig = validate(AppConfigDto, rawConfig);
