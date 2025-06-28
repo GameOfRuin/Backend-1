@@ -10,7 +10,7 @@ import {
 } from '../../exceptions';
 import logger from '../../logger';
 import { JwtService } from '../jwt/jwt.service';
-import { LoginUserDto, PasswordChangeDto, RegisterUserDto } from './dto';
+import { LoginUserDto, PasswordChangeDto, RefreshTokenDto, RegisterUserDto } from './dto';
 
 @injectable()
 export class UserService {
@@ -20,6 +20,7 @@ export class UserService {
     @inject(JwtService)
     private readonly jwtService: JwtService,
   ) {}
+
   async register(dto: RegisterUserDto) {
     logger.info(`Регистрация нового пользователя email = ${dto.email}`);
 
@@ -39,6 +40,7 @@ export class UserService {
 
     return user;
   }
+
   async login(dto: LoginUserDto) {
     logger.info(`Пришли данные для логина. email = ${dto.email}`);
 
@@ -60,6 +62,20 @@ export class UserService {
 
     return tokens;
   }
+
+  async logout(refreshToken: RefreshTokenDto['refreshToken']) {
+    logger.info('Пришел запрос на logout');
+
+    const refresh = this.redis.get(redisRefreshTokenKey(refreshToken));
+    if (!refresh) {
+      throw new UnauthorizedException();
+    }
+
+    await this.redis.delete(redisRefreshTokenKey(refreshToken));
+
+    return { message: 'Произошел выход' };
+  }
+
   async passwordChange(dto: PasswordChangeDto) {
     logger.info(`Пришли данные для логина. email = ${dto.email}`);
 
