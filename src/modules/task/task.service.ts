@@ -8,12 +8,13 @@ import { NotFoundException } from '../../exceptions';
 import logger from '../../logger';
 import { CreateTaskDto } from './dto';
 import { GetTaskListDto } from './dto/sort-by.dto';
+import { UserService } from '../user/user.service';
 
 @injectable()
 export class TaskService {
   constructor(
-    @inject(RedisService)
-    private readonly redis: RedisService,
+    @inject(RedisService) private readonly redis: RedisService,
+    @inject(UserService) private readonly user: UserService,
   ) {}
 
   async getTasks(dto: GetTaskListDto) {
@@ -83,7 +84,7 @@ export class TaskService {
   async createTask(dto: CreateTaskDto) {
     logger.info(`Создание задачи`);
 
-    await this.findUser(dto.assigneeId);
+    await this.user.findUser(dto.assigneeId);
 
     const newTask = await TaskEntity.create({
       ...dto,
@@ -97,7 +98,7 @@ export class TaskService {
 
     await this.getTaskById(idTask);
 
-    await this.findUser(dto.assigneeId);
+    await this.user.findUser(dto.assigneeId);
 
     await TaskEntity.update(dto, { where: { id: idTask } });
 

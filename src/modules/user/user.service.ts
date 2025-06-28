@@ -1,7 +1,11 @@
 import { compare, hash } from 'bcrypt';
 import { injectable } from 'inversify';
 import { UserEntity } from '../../database/entities/user.entity';
-import { ConflictException, UnauthorizedException } from '../../exceptions';
+import {
+  ConflictException,
+  NotFoundException,
+  UnauthorizedException,
+} from '../../exceptions';
 import logger from '../../logger';
 import { LoginUserDto, PasswordChangeDto, RegisterUserDto } from './dto';
 
@@ -48,5 +52,16 @@ export class UserService {
     await UserEntity.update(dto, { where: { email: dto.email } });
 
     return { message: 'Смена пароля' };
+  }
+
+  async findUser(id: UserEntity['id'] | undefined) {
+    if (id) {
+      const user = await UserEntity.findOne({
+        where: { id: id },
+      });
+      if (!user) {
+        throw new NotFoundException('Исполнитель не найден');
+      }
+    }
   }
 }
