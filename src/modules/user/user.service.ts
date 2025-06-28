@@ -1,16 +1,25 @@
 import { compare, hash } from 'bcrypt';
-import { injectable } from 'inversify';
-import { UserEntity } from '../../database/entities/user.entity';
+import { inject, injectable } from 'inversify';
+import { redisRefreshTokenKey } from '../../cache/redis.keys';
+import { RedisService } from '../../cache/redis.service';
+import { UserEntity } from '../../database';
 import {
   ConflictException,
   NotFoundException,
   UnauthorizedException,
 } from '../../exceptions';
 import logger from '../../logger';
+import { JwtService } from '../jwt/jwt.service';
 import { LoginUserDto, PasswordChangeDto, RegisterUserDto } from './dto';
 
 @injectable()
 export class UserService {
+  constructor(
+    @inject(RedisService)
+    private readonly redis: RedisService,
+    @inject(JwtService)
+    private readonly jwtService: JwtService,
+  ) {}
   async register(dto: RegisterUserDto) {
     logger.info(`Регистрация нового пользователя email = ${dto.email}`);
 
@@ -40,7 +49,16 @@ export class UserService {
       throw new UnauthorizedException('Не найден email или неправильный пароль');
     }
 
-    return { email: dto.email };
+    const tokens = this.jwtService.makeTokenPair(user);
+    const { id } = user;
+
+    await this.redis.set(
+      redisRefreshTokenKey(tokens.refreshSecret),
+      { id },
+      { EX: 64000 },
+    );
+
+    return tokens;
   }
   async passwordChange(dto: PasswordChangeDto) {
     logger.info(`Пришли данные для логина. email = ${dto.email}`);
@@ -52,6 +70,20 @@ export class UserService {
     await UserEntity.update(dto, { where: { email: dto.email } });
 
     return { message: 'Смена пароля' };
+  }
+
+  async profile(id: UserEntity['id']) {
+    logger.info(`Чтение профиля userId=${id}`);
+
+    const user = await UserEntity.findByPk(id, {
+      attributes: { exclude: ['password'] },
+    });
+
+    if (!user) {
+      throw new Error('Not Found');
+    }
+
+    return user;
   }
 
   async findUser(id: UserEntity['id'] | undefined) {
