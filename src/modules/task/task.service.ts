@@ -8,6 +8,7 @@ import logger from '../../logger';
 import { UserService } from '../user/user.service';
 import { CreateTaskDto } from './dto';
 import { GetTaskListDto } from './dto/sort-by.dto';
+import { UpdateTaskDto } from './dto/update.dto';
 
 @injectable()
 export class TaskService {
@@ -68,7 +69,10 @@ export class TaskService {
     const task = await TaskEntity.findOne({
       where: { id: idTask },
       attributes: ['title', 'status', 'importance', 'description'],
-      include: [{ model: UserEntity, attributes: ['id', 'name'] }],
+      include: [
+        { model: UserEntity, as: 'authored', attributes: ['id', 'name'] },
+        { model: UserEntity, as: 'assignee', attributes: ['id', 'name'] },
+      ],
     });
 
     if (!task) {
@@ -78,6 +82,45 @@ export class TaskService {
     await this.redis.set(redisTaskKey(idTask), task, { EX: 300 });
 
     return task;
+  }
+
+  async getAuthored(dto: GetTaskListDto, id: UserEntity['id']) {
+    logger.info(`Чтение задач по id = ${id}`);
+
+    const { limit, offset, sortBy, sortDirection, search } = dto;
+
+    // const cacheTasks = await this.redis.get<TaskEntity>(redisTasksKey(limit, offset));
+    //
+    // if (cacheTasks) {
+    //   return cacheTasks;
+    // }
+
+    const options: FindOptions = {
+      offset,
+      limit,
+      where: { authoredId: id },
+      order: [[sortBy, sortDirection]],
+    };
+
+    if (search) {
+      const likePattern = `%${search}%`;
+      options.where = {
+        ...options.where,
+        [Op.or]: {
+          title: { [Op.iLike]: likePattern },
+          description: { [Op.iLike]: likePattern },
+        },
+      };
+    }
+
+    const { rows, count: total } = await TaskEntity.findAndCountAll(options);
+    if (!rows) {
+      throw new NotFoundException('Задач не найдено');
+    }
+    const response = { total, limit, offset, rows, id };
+    await this.redis.set(redisTasksKey(limit, offset), response, { EX: 300 });
+
+    return response;
   }
 
   async createTask(dto: CreateTaskDto) {
@@ -92,7 +135,7 @@ export class TaskService {
     return await this.getTaskById(newTask.id);
   }
 
-  async updateTask(dto: CreateTaskDto, idTask: TaskEntity['id']) {
+  async updateTask(dto: UpdateTaskDto, idTask: TaskEntity['id']) {
     logger.info(`Изменение задачи по id=${idTask}`);
 
     await this.getTaskById(idTask);

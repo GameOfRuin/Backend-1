@@ -27,6 +27,9 @@ export class CreateTaskDto {
   description: string;
 
   @IsNumber()
+  authoredId: number;
+
+  @IsNumber()
   @IsOptional()
   assigneeId?: number;
 }
