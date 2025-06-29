@@ -20,6 +20,11 @@ export class UserController {
       this.register(req, res),
     );
     this.router.post('/login', (req: Request, res: Response) => this.login(req, res));
+    this.router.post(
+      '/refresh',
+      JwtGuard(this.jwtService),
+      (req: Request, res: Response) => this.refresh(req, res),
+    );
     this.router.post('/logout', (req: Request, res: Response) => this.logout(req, res));
     this.router.put('/password/change', (req: Request, res: Response) =>
       this.passwordChange(req, res),
@@ -53,6 +58,15 @@ export class UserController {
     } = res.locals;
 
     const result = await this.userService.profile(id);
+
+    res.json(result);
+  }
+
+  async refresh(req: Request, res: Response) {
+    const user = res.locals.user;
+    const { refreshToken } = validate(RefreshTokenDto, req.body);
+
+    const result = await this.userService.refresh(refreshToken, user);
 
     res.json(result);
   }

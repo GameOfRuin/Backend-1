@@ -2,13 +2,12 @@ import { inject, injectable } from 'inversify';
 import { FindOptions, Op } from 'sequelize';
 import { redisTaskKey, redisTasksKey } from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
-import { TaskEntity } from '../../database/entities/task.entity';
-import { UserEntity } from '../../database/entities/user.entity';
+import { TaskEntity, UserEntity } from '../../database';
 import { NotFoundException } from '../../exceptions';
 import logger from '../../logger';
+import { UserService } from '../user/user.service';
 import { CreateTaskDto } from './dto';
 import { GetTaskListDto } from './dto/sort-by.dto';
-import { UserService } from '../user/user.service';
 
 @injectable()
 export class TaskService {
@@ -115,16 +114,5 @@ export class TaskService {
     const deleted = await TaskEntity.destroy({ where: { id } });
 
     return { success: Boolean(deleted) };
-  }
-
-  async findUser(id: UserEntity['id'] | undefined) {
-    if (id) {
-      const user = await UserEntity.findOne({
-        where: { id: id },
-      });
-      if (!user) {
-        throw new NotFoundException('Исполнитель не найден');
-      }
-    }
   }
 }

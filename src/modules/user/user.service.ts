@@ -51,29 +51,28 @@ export class UserService {
       throw new UnauthorizedException('Не найден email или неправильный пароль');
     }
 
-    const tokens = this.jwtService.makeTokenPair(user);
-    const { id } = user;
-
-    await this.redis.set(
-      redisRefreshTokenKey(tokens.refreshSecret),
-      { id },
-      { EX: 64000 },
-    );
-
-    return tokens;
+    return await this.getTokenPair(user);
   }
 
   async logout(refreshToken: RefreshTokenDto['refreshToken']) {
     logger.info('Пришел запрос на logout');
 
-    const refresh = this.redis.get(redisRefreshTokenKey(refreshToken));
-    if (!refresh) {
+    const idUser = this.redis.get(redisRefreshTokenKey(refreshToken));
+    if (!idUser) {
       throw new UnauthorizedException();
     }
 
     await this.redis.delete(redisRefreshTokenKey(refreshToken));
 
     return { message: 'Произошел выход' };
+  }
+
+  async refresh(token: RefreshTokenDto['refreshToken'], user: UserEntity) {
+    logger.info('Пришел запрос на обновление RefreshToken');
+
+    await this.logout(token);
+
+    return await this.getTokenPair(user);
   }
 
   async passwordChange(dto: PasswordChangeDto) {
@@ -103,13 +102,26 @@ export class UserService {
   }
 
   async findUser(id: UserEntity['id'] | undefined) {
-    if (id) {
-      const user = await UserEntity.findOne({
-        where: { id: id },
-      });
-      if (!user) {
-        throw new NotFoundException('Исполнитель не найден');
-      }
+    const user = await UserEntity.findOne({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Исполнитель не найден');
     }
+
+    return user;
+  }
+
+  async getTokenPair(user: UserEntity) {
+    const tokens = this.jwtService.makeTokenPair(user);
+    const { id } = user;
+
+    await this.redis.set(
+      redisRefreshTokenKey(tokens.refreshSecret),
+      { id },
+      { EX: 64000 },
+    );
+    return tokens;
   }
 }
