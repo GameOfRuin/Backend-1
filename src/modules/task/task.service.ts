@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
 import { FindOptions, Op } from 'sequelize';
-import { redisTaskKey, redisTasksKey } from '../../cache/redis.keys';
+import { redisAuthoredTask, redisTaskKey, redisTasksKey } from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
 import { TaskEntity, UserEntity } from '../../database';
 import { NotFoundException } from '../../exceptions';
@@ -84,21 +84,23 @@ export class TaskService {
     return task;
   }
 
-  async getAuthored(dto: GetTaskListDto, id: UserEntity['id']) {
-    logger.info(`Чтение задач по id = ${id}`);
+  async getAuthored(dto: GetTaskListDto, authoredId: UserEntity['id']) {
+    logger.info(`Чтение задач по id = ${authoredId}`);
 
     const { limit, offset, sortBy, sortDirection, search } = dto;
 
-    // const cacheTasks = await this.redis.get<TaskEntity>(redisTasksKey(limit, offset));
-    //
-    // if (cacheTasks) {
-    //   return cacheTasks;
-    // }
+    const cacheTasks = await this.redis.get<TaskEntity>(
+      redisAuthoredTask(limit, offset, sortBy, sortDirection, authoredId, search),
+    );
+
+    if (cacheTasks) {
+      return cacheTasks;
+    }
 
     const options: FindOptions = {
       offset,
       limit,
-      where: { authoredId: id },
+      where: { authoredId },
       order: [[sortBy, sortDirection]],
     };
 
@@ -114,11 +116,13 @@ export class TaskService {
     }
 
     const { rows, count: total } = await TaskEntity.findAndCountAll(options);
-    if (!rows) {
-      throw new NotFoundException('Задач не найдено');
-    }
-    const response = { total, limit, offset, rows, id };
-    await this.redis.set(redisTasksKey(limit, offset), response, { EX: 300 });
+
+    const response = { total, authoredId, limit, offset, rows };
+    await this.redis.set(
+      redisAuthoredTask(limit, offset, sortBy, sortDirection, authoredId, search),
+      response,
+      { EX: 300 },
+    );
 
     return response;
   }
@@ -126,7 +130,7 @@ export class TaskService {
   async createTask(dto: CreateTaskDto) {
     logger.info(`Создание задачи`);
 
-    await this.user.findUser(dto.assigneeId);
+    if (dto.assigneeId) await this.user.findUser(dto.assigneeId);
 
     const newTask = await TaskEntity.create({
       ...dto,
