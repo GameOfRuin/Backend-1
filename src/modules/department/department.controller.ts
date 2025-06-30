@@ -5,7 +5,7 @@ import { RoleGuard } from '../../guards/role.guard';
 import { IdNumberDto } from '../../shared';
 import { validate } from '../../validate';
 import { JwtService } from '../jwt/jwt.service';
-import { UserRole } from '../user/user.types';
+import { UserRoleEnum } from '../user/user.types';
 import { DepartmentService } from './department.service';
 import { CreateDepartmentDto } from './dto';
 
@@ -20,7 +20,7 @@ export class DepartmentController {
     private readonly jwtService: JwtService,
   ) {
     const authentication = JwtGuard(this.jwtService);
-    const authorization = [authentication, RoleGuard(UserRole.admin)];
+    const authorization = [authentication, RoleGuard(UserRoleEnum.admin)];
 
     this.router.post('/', (req: Request, res: Response) =>
       this.createDepartment(req, res),

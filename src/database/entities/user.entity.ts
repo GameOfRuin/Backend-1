@@ -1,5 +1,5 @@
 import { Column, DataType, Model, Table } from 'sequelize-typescript';
-import { UserRole } from '../../modules/user/user.types';
+import { UserRoleEnum } from '../../modules/user/user.types';
 
 @Table({ tableName: 'users' })
 export class UserEntity extends Model {
@@ -14,9 +14,16 @@ export class UserEntity extends Model {
   @Column({
     type: DataType.STRING,
     allowNull: false,
-    defaultValue: UserRole.user,
+    defaultValue: true,
   })
-  public role: UserRole;
+  public isActive: boolean;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+    defaultValue: UserRoleEnum.user,
+  })
+  public role: UserRoleEnum;
 
   @Column({
     type: DataType.STRING,

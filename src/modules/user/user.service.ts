@@ -113,6 +113,25 @@ export class UserService {
     return user;
   }
 
+  async block(id: UserEntity['id'], unBlock?: boolean) {
+    logger.info(`Блокировка пользователя по id=${id}`);
+
+    const value = unBlock ?? false;
+
+    await this.findUser(id);
+
+    await UserEntity.update({ isActive: value }, { where: { id } });
+
+    return { message: `Пользователь ${id}  заблокирован` };
+  }
+  async unBlock(id: UserEntity['id']) {
+    logger.info(`Разблокировка пользователя по id=${id}`);
+
+    await this.block(id, true);
+
+    return { message: 'Пользователь разблокирован' };
+  }
+
   async getTokenPair(user: UserEntity) {
     const tokens = this.jwtService.makeTokenPair(user);
     const { id } = user;

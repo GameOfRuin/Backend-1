@@ -1,11 +1,11 @@
 import { NextFunction, Request, Response } from 'express';
-import { UserRole } from '../modules/user/user.types';
+import { UserRoleEnum } from '../modules/user/user.types';
 
 export const RoleGuard =
-  (requiredRole: UserRole) => (req: Request, res: Response, next: NextFunction) => {
+  (requiredRole: UserRoleEnum) => (req: Request, res: Response, next: NextFunction) => {
     const userRole = res.locals.user.role;
 
-    if (userRole !== UserRole.admin && requiredRole === UserRole.admin) {
+    if (userRole !== UserRoleEnum.admin && requiredRole === UserRoleEnum.admin) {
       throw new Error();
     }
 
