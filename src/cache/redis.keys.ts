@@ -1,6 +1,6 @@
 import { TaskEntity, UserEntity } from '../database';
-import { RefreshTokenDto } from '../modules/user/dto';
 import { TaskSortByEnum } from '../modules/task/dto/sort-by.dto';
+import { RefreshTokenDto } from '../modules/user/dto';
 import { SortDirectionEnum } from '../shared';
 
 export const redisTaskKey = (id: TaskEntity['id']) => `task:${id}`;
