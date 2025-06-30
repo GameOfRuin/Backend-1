@@ -25,6 +25,11 @@ export class TaskController {
       JwtGuard(this.jwtService),
       (req: Request, res: Response) => this.getAuthored(req, res),
     );
+    this.router.get(
+      '/assigned',
+      JwtGuard(this.jwtService),
+      (req: Request, res: Response) => this.getAssigned(req, res),
+    );
     this.router.get('/:id', (req: Request, res: Response) => this.getTaskById(req, res));
 
     this.router.post('/', (req: Request, res: Response) => this.createTask(req, res));
@@ -54,6 +59,17 @@ export class TaskController {
     const dto = validate(GetTaskListDto, req.query);
 
     const result = await this.taskService.getAuthored(dto, id);
+
+    res.json(result);
+  }
+
+  async getAssigned(req: Request, res: Response) {
+    const {
+      user: { id },
+    } = res.locals;
+    const dto = validate(GetTaskListDto, req.query);
+
+    const result = await this.taskService.getAssigned(dto, id);
 
     res.json(result);
   }

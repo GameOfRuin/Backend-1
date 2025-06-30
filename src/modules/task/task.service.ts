@@ -1,6 +1,11 @@
 import { inject, injectable } from 'inversify';
 import { FindOptions, Op } from 'sequelize';
-import { redisAuthoredTask, redisTaskKey, redisTasksKey } from '../../cache/redis.keys';
+import {
+  redisAssignedTask,
+  redisAuthoredTask,
+  redisTaskKey,
+  redisTasksKey,
+} from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
 import { TaskEntity, UserEntity } from '../../database';
 import { NotFoundException } from '../../exceptions';
@@ -120,6 +125,49 @@ export class TaskService {
     const response = { total, authoredId, limit, offset, rows };
     await this.redis.set(
       redisAuthoredTask(limit, offset, sortBy, sortDirection, authoredId, search),
+      response,
+      { EX: 300 },
+    );
+
+    return response;
+  }
+
+  async getAssigned(dto: GetTaskListDto, assigneeId: UserEntity['id']) {
+    logger.info(`Чтение задач по id = ${assigneeId}`);
+
+    const { limit, offset, sortBy, sortDirection, search } = dto;
+
+    const cacheTasks = await this.redis.get<TaskEntity>(
+      redisAssignedTask(limit, offset, sortBy, sortDirection, assigneeId, search),
+    );
+
+    if (cacheTasks) {
+      return cacheTasks;
+    }
+
+    const options: FindOptions = {
+      offset,
+      limit,
+      where: { assigneeId },
+      order: [[sortBy, sortDirection]],
+    };
+
+    if (search) {
+      const likePattern = `%${search}%`;
+      options.where = {
+        ...options.where,
+        [Op.or]: {
+          title: { [Op.iLike]: likePattern },
+          description: { [Op.iLike]: likePattern },
+        },
+      };
+    }
+
+    const { rows, count: total } = await TaskEntity.findAndCountAll(options);
+
+    const response = { total, assigneeId, limit, offset, rows };
+    await this.redis.set(
+      redisAssignedTask(limit, offset, sortBy, sortDirection, assigneeId, search),
       response,
       { EX: 300 },
     );

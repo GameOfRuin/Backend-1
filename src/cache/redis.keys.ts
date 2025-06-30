@@ -17,3 +17,12 @@ export const redisAuthoredTask = (
   search?: string,
 ) =>
   `tasksAuthored:${redisTasksKey(limit, offset)}:sortBy=${sortBy}:sortDirection=${sortDirection}:search=${search}:authoredId=${authoredId}`;
+export const redisAssignedTask = (
+  limit: number,
+  offset: number,
+  sortBy: TaskSortByEnum,
+  sortDirection: SortDirectionEnum,
+  authoredId: UserEntity['id'],
+  search?: string,
+) =>
+  `tasksAssigned:${redisTasksKey(limit, offset)}:sortBy=${sortBy}:sortDirection=${sortDirection}:search=${search}:authoredId=${authoredId}`;
