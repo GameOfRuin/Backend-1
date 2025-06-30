@@ -1,12 +1,12 @@
 import { Request, Response, Router } from 'express';
 import { inject, injectable } from 'inversify';
 import { JwtGuard } from '../../guards/jwt.guard';
+import { RoleGuard } from '../../guards/role.guard';
+import { IdNumberDto } from '../../shared';
 import { validate } from '../../validate';
 import { JwtService } from '../jwt/jwt.service';
 import { LoginUserDto, PasswordChangeDto, RefreshTokenDto, RegisterUserDto } from './dto';
 import { UserService } from './user.service';
-import { IdNumberDto } from '../../shared';
-import { RoleGuard } from '../../guards/role.guard';
 import { UserRoleEnum } from './user.types';
 
 @injectable()
