@@ -47,6 +47,16 @@ export class TaskEntity extends Model {
     type: DataType.INTEGER,
     allowNull: true,
   })
+  public authoredId: number;
+
+  @BelongsTo(() => UserEntity, { as: 'authored', foreignKey: 'authoredId' })
+  public authored: UserEntity;
+
+  @ForeignKey(() => UserEntity)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
   public assigneeId: number;
 
   @BelongsTo(() => UserEntity, { as: 'assignee', foreignKey: 'assigneeId' })

@@ -8,11 +8,11 @@ export class UpdateTaskDto {
 
   @IsEnum(TaskStatus)
   @IsOptional()
-  status: string;
+  status: TaskStatus;
 
   @IsEnum(TaskImportance)
   @IsOptional()
-  importance: string;
+  importance: TaskImportance;
 
   @IsString()
   @MaxLength(256)

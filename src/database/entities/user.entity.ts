@@ -1,4 +1,5 @@
 import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import { UserRole } from '../../modules/user/user.types';
 
 @Table({ tableName: 'users' })
 export class UserEntity extends Model {
@@ -9,6 +10,13 @@ export class UserEntity extends Model {
     allowNull: false,
   })
   public id: number;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+    defaultValue: UserRole.user,
+  })
+  public role: UserRole;
 
   @Column({
     type: DataType.STRING,

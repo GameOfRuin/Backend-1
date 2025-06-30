@@ -12,6 +12,7 @@ export class RegisterUserDto {
   @MinLength(5)
   password: string;
 }
+
 export class LoginUserDto {
   @IsEmail()
   email: string;
