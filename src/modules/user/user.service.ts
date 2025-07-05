@@ -88,7 +88,7 @@ export class UserService {
     return { message: 'Смена пароля' };
   }
 
-  async profile(id: UserEntity['id']) {
+  async profile(id: UserEntity['id'] | undefined) {
     logger.info(`Чтение профиля userId=${id}`);
 
     const user = await UserEntity.findByPk(id, {
@@ -96,19 +96,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new Error('Not Found');
-    }
-
-    return user;
-  }
-
-  async findUser(id: UserEntity['id'] | undefined) {
-    const user = await UserEntity.findOne({
-      where: { id },
-    });
-
-    if (!user) {
-      throw new NotFoundException('Исполнитель не найден');
+      throw new NotFoundException('Пользователь не найден');
     }
 
     return user;
@@ -117,7 +105,7 @@ export class UserService {
   async changeIsActive(id: UserEntity['id'], isActive: boolean) {
     logger.info(`Пришл запрос на ${isActive ? 'раз' : ''}блокировку пользователя ${id}`);
 
-    await this.findUser(id);
+    await this.profile(id);
 
     await UserEntity.update({ isActive }, { where: { id } });
 

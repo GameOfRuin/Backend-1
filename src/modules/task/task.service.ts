@@ -178,7 +178,7 @@ export class TaskService {
   async createTask(dto: CreateTaskDto) {
     logger.info(`Создание задачи`);
 
-    if (dto.assigneeId) await this.user.findUser(dto.assigneeId);
+    if (dto.assigneeId) await this.user.profile(dto.assigneeId);
 
     const newTask = await TaskEntity.create({
       ...dto,
@@ -192,7 +192,7 @@ export class TaskService {
 
     await this.getTaskById(idTask);
 
-    await this.user.findUser(dto.assigneeId);
+    await this.user.profile(dto.assigneeId);
 
     await TaskEntity.update(dto, { where: { id: idTask } });
 
