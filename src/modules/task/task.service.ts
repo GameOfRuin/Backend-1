@@ -1,5 +1,5 @@
 import { inject, injectable } from 'inversify';
-import { FindOptions, Op } from 'sequelize';
+import { FindOptions, Includeable, Op } from 'sequelize';
 import {
   redisAssignedTask,
   redisAuthoredTask,
@@ -22,6 +22,15 @@ export class TaskService {
     @inject(UserService) private readonly user: UserService,
   ) {}
 
+  private readonly joinUser: Includeable[] = [
+    {
+      model: UserEntity,
+      as: 'author',
+      attributes: ['id', 'name'],
+    },
+    { model: UserEntity, as: 'assignee', attributes: ['id', 'name'] },
+  ];
+
   async getTasks(dto: GetTaskListDto) {
     logger.info(`Запрос на чтение списка задач`);
 
@@ -37,6 +46,7 @@ export class TaskService {
       offset,
       limit,
       order: [[sortBy, sortDirection]],
+      include: [...this.joinUser],
     };
 
     if (search) {
@@ -74,10 +84,7 @@ export class TaskService {
     const task = await TaskEntity.findOne({
       where: { id: idTask },
       attributes: ['title', 'status', 'importance', 'description'],
-      include: [
-        { model: UserEntity, as: 'authored', attributes: ['id', 'name'] },
-        { model: UserEntity, as: 'assignee', attributes: ['id', 'name'] },
-      ],
+      include: [...this.joinUser],
     });
 
     if (!task) {
@@ -107,6 +114,7 @@ export class TaskService {
       limit,
       where: { authoredId },
       order: [[sortBy, sortDirection]],
+      include: [...this.joinUser],
     };
 
     if (search) {
@@ -150,6 +158,7 @@ export class TaskService {
       limit,
       where: { assigneeId },
       order: [[sortBy, sortDirection]],
+      include: [...this.joinUser],
     };
 
     if (search) {
@@ -175,13 +184,14 @@ export class TaskService {
     return response;
   }
 
-  async createTask(dto: CreateTaskDto) {
+  async createTask(dto: CreateTaskDto, authorId: TaskEntity['author']) {
     logger.info(`Создание задачи`);
 
     if (dto.assigneeId) await this.user.profile(dto.assigneeId);
 
     const newTask = await TaskEntity.create({
       ...dto,
+      authorId,
     });
 
     return await this.getTaskById(newTask.id);
@@ -192,7 +202,7 @@ export class TaskService {
 
     await this.getTaskById(idTask);
 
-    await this.user.profile(dto.assigneeId);
+    if (dto.assigneeId) await this.user.profile(dto.assigneeId);
 
     await TaskEntity.update(dto, { where: { id: idTask } });
 

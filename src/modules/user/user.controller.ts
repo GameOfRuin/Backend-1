@@ -31,7 +31,11 @@ export class UserController {
       JwtGuard(this.jwtService),
       (req: Request, res: Response) => this.refresh(req, res),
     );
-    this.router.post('/logout', (req: Request, res: Response) => this.logout(req, res));
+    this.router.post(
+      '/logout',
+      JwtGuard(this.jwtService),
+      (req: Request, res: Response) => this.logout(req, res),
+    );
     this.router.post('/:id/block', authorization, (req: Request, res: Response) =>
       this.changeIsActive(req, res, false),
     );
@@ -84,9 +88,10 @@ export class UserController {
   }
 
   async logout(req: Request, res: Response) {
+    const id = res.locals.user.id;
     const { refreshToken } = validate(RefreshTokenDto, req.body);
 
-    const result = await this.userService.logout(refreshToken);
+    const result = await this.userService.logout(refreshToken, id);
 
     res.json(result);
   }

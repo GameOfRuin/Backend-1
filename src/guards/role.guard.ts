@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { ForbiddenException } from '../exceptions';
 import { UserRoleEnum } from '../modules/user/user.types';
 
 export const RoleGuard =
@@ -6,7 +7,7 @@ export const RoleGuard =
     const userRole = res.locals.user.role;
 
     if (userRole !== UserRoleEnum.admin && requiredRole === UserRoleEnum.admin) {
-      throw new Error();
+      throw new ForbiddenException('Пользователь не имеет прав');
     }
 
     next();
