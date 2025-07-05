@@ -105,11 +105,4 @@ export class UserController {
 
     res.json(result);
   }
-  async unBlock(req: Request, res: Response) {
-    const { id } = validate(IdNumberDto, req.params);
-
-    const result = await this.userService.unBlock(id);
-
-    res.json(result);
-  }
 }
