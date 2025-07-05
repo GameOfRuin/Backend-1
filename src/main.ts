@@ -10,6 +10,7 @@ import logger from './logger';
 import { errorHandler } from './middlewares';
 import { DepartmentController } from './modules/department/department.controller';
 import DepartmentModule from './modules/department/department.module';
+import JwtModule from './modules/jwt/jwt.module';
 import { TaskController } from './modules/task/task.controller';
 import TaskModule from './modules/task/task.module';
 import { UserController } from './modules/user/user.controller';
@@ -20,7 +21,13 @@ const bootstrap = async () => {
 
   const appContainer = new Container();
 
-  await appContainer.load(UserModule, TaskModule, DepartmentModule, RedisModule);
+  await appContainer.load(
+    UserModule,
+    TaskModule,
+    DepartmentModule,
+    RedisModule,
+    JwtModule,
+  );
 
   const server = express();
 

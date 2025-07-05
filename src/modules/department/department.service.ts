@@ -1,6 +1,6 @@
 import { injectable } from 'inversify';
 import { DepartmentEntity } from '../../database/entities/department.entity';
-import { ConflictException, NotFoundException } from '../../exceptions';
+import { ConflictException } from '../../exceptions';
 import logger from '../../logger';
 import { CreateDepartmentDto } from './dto';
 
@@ -20,22 +20,16 @@ export class DepartmentService {
   async getAllDepartments() {
     logger.info(`Запрос департаментов`);
 
-    const department = await DepartmentEntity.findAll({
+    return await DepartmentEntity.findAll({
       order: ['id'],
     });
-
-    if (!department) {
-      throw new NotFoundException('Еще не создано ни одного департамента');
-    }
-
-    return department;
   }
 
   async deleteDepartment(id: DepartmentEntity['id']) {
     logger.info(`Удаление департамента id = ${id}`);
 
-    await DepartmentEntity.destroy({ where: { id: id } });
+    await DepartmentEntity.destroy({ where: { id } });
 
-    return { massage: 'Департамент удален' };
+    return { message: 'Департамент удален' };
   }
 }

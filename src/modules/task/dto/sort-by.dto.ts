@@ -5,7 +5,7 @@ export enum TaskSortByEnum {
   id = 'id',
   title = 'title',
   description = 'description',
-  status = 'progress',
+  status = 'status',
 }
 
 export class GetTaskListDto extends PaginationDto {
