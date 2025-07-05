@@ -58,7 +58,7 @@ export class UserService {
   async logout(refreshToken: RefreshTokenDto['refreshToken']) {
     logger.info('Пришел запрос на logout');
 
-    const idUser = this.redis.get(redisRefreshTokenKey(refreshToken));
+    const idUser = await this.redis.get(redisRefreshTokenKey(refreshToken));
     if (!idUser) {
       throw new UnauthorizedException();
     }
@@ -71,7 +71,17 @@ export class UserService {
   async refresh(token: RefreshTokenDto['refreshToken'], user: UserEntity) {
     logger.info('Пришел запрос на обновление RefreshToken');
 
-    await this.logout(token);
+    const data = await this.redis.get(redisRefreshTokenKey(token));
+    if (!data) {
+      throw new UnauthorizedException();
+    }
+
+    const { id } = data;
+    if (user.id !== id) {
+      throw new UnauthorizedException();
+    }
+
+    await this.redis.delete(redisRefreshTokenKey(token));
 
     return await this.getTokenPair(user);
   }
