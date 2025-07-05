@@ -9,6 +9,7 @@ import {
   UnauthorizedException,
 } from '../../exceptions';
 import logger from '../../logger';
+import { TimeInSeconds } from '../../shared';
 import { JwtService } from '../jwt/jwt.service';
 import { LoginUserDto, PasswordChangeDto, RefreshTokenDto, RegisterUserDto } from './dto';
 
@@ -113,23 +114,14 @@ export class UserService {
     return user;
   }
 
-  async block(id: UserEntity['id'], unBlock?: boolean) {
-    logger.info(`Блокировка пользователя по id=${id}`);
-
-    const value = unBlock ?? false;
+  async changeIsActive(id: UserEntity['id'], isActive: boolean) {
+    logger.info(`Пришл запрос на ${isActive ? 'раз' : ''}блокировку пользователя ${id}`);
 
     await this.findUser(id);
 
-    await UserEntity.update({ isActive: value }, { where: { id } });
+    await UserEntity.update({ isActive }, { where: { id } });
 
-    return { message: `Пользователь ${id}  заблокирован` };
-  }
-  async unBlock(id: UserEntity['id']) {
-    logger.info(`Разблокировка пользователя по id=${id}`);
-
-    await this.block(id, true);
-
-    return { message: 'Пользователь разблокирован' };
+    return { message: `Пользователь ${id} ${isActive ? 'раз' : 'за'}блокирован` };
   }
 
   async getTokenPair(user: UserEntity) {
@@ -139,7 +131,7 @@ export class UserService {
     await this.redis.set(
       redisRefreshTokenKey(tokens.refreshSecret),
       { id },
-      { EX: 64000 },
+      { EX: TimeInSeconds.day },
     );
     return tokens;
   }

@@ -33,10 +33,10 @@ export class UserController {
     );
     this.router.post('/logout', (req: Request, res: Response) => this.logout(req, res));
     this.router.post('/:id/block', authorization, (req: Request, res: Response) =>
-      this.block(req, res),
+      this.changeIsActive(req, res, false),
     );
     this.router.post('/:id/unblock', authorization, (req: Request, res: Response) =>
-      this.unBlock(req, res),
+      this.changeIsActive(req, res, true),
     );
     this.router.put('/password/change', (req: Request, res: Response) =>
       this.passwordChange(req, res),
@@ -98,10 +98,10 @@ export class UserController {
 
     res.json(result);
   }
-  async block(req: Request, res: Response) {
+  async changeIsActive(req: Request, res: Response, active: boolean) {
     const { id } = validate(IdNumberDto, req.params);
 
-    const result = await this.userService.block(id);
+    const result = await this.userService.changeIsActive(id, active);
 
     res.json(result);
   }
