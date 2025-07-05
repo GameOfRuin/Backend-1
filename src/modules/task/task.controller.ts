@@ -32,7 +32,9 @@ export class TaskController {
     );
     this.router.get('/:id', (req: Request, res: Response) => this.getTaskById(req, res));
 
-    this.router.post('/', (req: Request, res: Response) => this.createTask(req, res));
+    this.router.post('/', JwtGuard(this.jwtService), (req: Request, res: Response) =>
+      this.createTask(req, res),
+    );
     this.router.put('/:id', (req: Request, res: Response) => this.updateTask(req, res));
     this.router.delete('/:id', (req: Request, res: Response) => this.deleteOne(req, res));
   }
@@ -76,8 +78,11 @@ export class TaskController {
 
   async createTask(req: Request, res: Response) {
     const dto = validate(CreateTaskDto, req.body);
+    const {
+      user: { id },
+    } = res.locals;
 
-    const result = await this.taskService.createTask(dto);
+    const result = await this.taskService.createTask(dto, id);
 
     res.json(result);
   }

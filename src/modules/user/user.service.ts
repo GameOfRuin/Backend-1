@@ -9,6 +9,7 @@ import {
   UnauthorizedException,
 } from '../../exceptions';
 import logger from '../../logger';
+import { TimeInSeconds } from '../../shared';
 import { JwtService } from '../jwt/jwt.service';
 import { LoginUserDto, PasswordChangeDto, RefreshTokenDto, RegisterUserDto } from './dto';
 
@@ -54,11 +55,17 @@ export class UserService {
     return await this.getTokenPair(user);
   }
 
-  async logout(refreshToken: RefreshTokenDto['refreshToken']) {
+  async logout(refreshToken: RefreshTokenDto['refreshToken'], userId: UserEntity['id']) {
     logger.info('Пришел запрос на logout');
 
-    const idUser = this.redis.get(redisRefreshTokenKey(refreshToken));
-    if (!idUser) {
+    const data = await this.redis.get(redisRefreshTokenKey(refreshToken));
+    if (!data) {
+      throw new UnauthorizedException();
+    }
+
+    const { id } = data;
+
+    if (userId !== id) {
       throw new UnauthorizedException();
     }
 
@@ -70,7 +77,17 @@ export class UserService {
   async refresh(token: RefreshTokenDto['refreshToken'], user: UserEntity) {
     logger.info('Пришел запрос на обновление RefreshToken');
 
-    await this.logout(token);
+    const data = await this.redis.get(redisRefreshTokenKey(token));
+    if (!data) {
+      throw new UnauthorizedException();
+    }
+
+    const { id } = data;
+    if (user.id !== id) {
+      throw new UnauthorizedException();
+    }
+
+    await this.redis.delete(redisRefreshTokenKey(token));
 
     return await this.getTokenPair(user);
   }
@@ -87,7 +104,7 @@ export class UserService {
     return { message: 'Смена пароля' };
   }
 
-  async profile(id: UserEntity['id']) {
+  async profile(id: UserEntity['id'] | undefined) {
     logger.info(`Чтение профиля userId=${id}`);
 
     const user = await UserEntity.findByPk(id, {
@@ -95,41 +112,20 @@ export class UserService {
     });
 
     if (!user) {
-      throw new Error('Not Found');
+      throw new NotFoundException('Пользователь не найден');
     }
 
     return user;
   }
 
-  async findUser(id: UserEntity['id'] | undefined) {
-    const user = await UserEntity.findOne({
-      where: { id },
-    });
+  async changeIsActive(id: UserEntity['id'], isActive: boolean) {
+    logger.info(`Пришл запрос на ${isActive ? 'раз' : ''}блокировку пользователя ${id}`);
 
-    if (!user) {
-      throw new NotFoundException('Исполнитель не найден');
-    }
+    await this.profile(id);
 
-    return user;
-  }
+    await UserEntity.update({ isActive }, { where: { id } });
 
-  async block(id: UserEntity['id'], unBlock?: boolean) {
-    logger.info(`Блокировка пользователя по id=${id}`);
-
-    const value = unBlock ?? false;
-
-    await this.findUser(id);
-
-    await UserEntity.update({ isActive: value }, { where: { id } });
-
-    return { message: `Пользователь ${id}  заблокирован` };
-  }
-  async unBlock(id: UserEntity['id']) {
-    logger.info(`Разблокировка пользователя по id=${id}`);
-
-    await this.block(id, true);
-
-    return { message: 'Пользователь разблокирован' };
+    return { message: `Пользователь ${id} ${isActive ? 'раз' : 'за'}блокирован` };
   }
 
   async getTokenPair(user: UserEntity) {
@@ -139,7 +135,7 @@ export class UserService {
     await this.redis.set(
       redisRefreshTokenKey(tokens.refreshSecret),
       { id },
-      { EX: 64000 },
+      { EX: TimeInSeconds.day },
     );
     return tokens;
   }
