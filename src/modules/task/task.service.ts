@@ -36,7 +36,7 @@ export class TaskService {
 
     const { limit, offset, sortBy, sortDirection, search } = dto;
 
-    const cacheTasks = await this.redis.get<TaskEntity>(redisTasksKey(limit, offset));
+    const cacheTasks = await this.redis.get<TaskEntity>(redisTasksKey(dto));
 
     if (cacheTasks) {
       return cacheTasks;
@@ -67,7 +67,7 @@ export class TaskService {
       throw new NotFoundException('Задач не найдено');
     }
     const response = { total, limit, offset, rows };
-    await this.redis.set(redisTasksKey(limit, offset), response, { EX: 300 });
+    await this.redis.set(redisTasksKey(dto), response, { EX: 300 });
 
     return response;
   }
@@ -96,14 +96,12 @@ export class TaskService {
     return task;
   }
 
-  async getAuthored(dto: GetTaskListDto, authoredId: UserEntity['id']) {
-    logger.info(`Чтение задач по id = ${authoredId}`);
+  async getAuthored(dto: GetTaskListDto, authorId: UserEntity['id']) {
+    logger.info(`Чтение задач по id = ${authorId}`);
 
     const { limit, offset, sortBy, sortDirection, search } = dto;
 
-    const cacheTasks = await this.redis.get<TaskEntity>(
-      redisAuthoredTask(limit, offset, sortBy, sortDirection, authoredId, search),
-    );
+    const cacheTasks = await this.redis.get<TaskEntity>(redisAuthoredTask(dto, authorId));
 
     if (cacheTasks) {
       return cacheTasks;
@@ -112,7 +110,7 @@ export class TaskService {
     const options: FindOptions = {
       offset,
       limit,
-      where: { authoredId },
+      where: { authorId },
       order: [[sortBy, sortDirection]],
       include: [...this.joinUser],
     };
@@ -130,12 +128,8 @@ export class TaskService {
 
     const { rows, count: total } = await TaskEntity.findAndCountAll(options);
 
-    const response = { total, authoredId, limit, offset, rows };
-    await this.redis.set(
-      redisAuthoredTask(limit, offset, sortBy, sortDirection, authoredId, search),
-      response,
-      { EX: 300 },
-    );
+    const response = { total, authorId, limit, offset, rows };
+    await this.redis.set(redisAuthoredTask(dto, authorId), response, { EX: 300 });
 
     return response;
   }
@@ -146,7 +140,7 @@ export class TaskService {
     const { limit, offset, sortBy, sortDirection, search } = dto;
 
     const cacheTasks = await this.redis.get<TaskEntity>(
-      redisAssignedTask(limit, offset, sortBy, sortDirection, assigneeId, search),
+      redisAssignedTask(dto, assigneeId),
     );
 
     if (cacheTasks) {
@@ -175,16 +169,12 @@ export class TaskService {
     const { rows, count: total } = await TaskEntity.findAndCountAll(options);
 
     const response = { total, assigneeId, limit, offset, rows };
-    await this.redis.set(
-      redisAssignedTask(limit, offset, sortBy, sortDirection, assigneeId, search),
-      response,
-      { EX: 300 },
-    );
+    await this.redis.set(redisAssignedTask(dto, assigneeId), response, { EX: 300 });
 
     return response;
   }
 
-  async createTask(dto: CreateTaskDto, authorId: TaskEntity['author']) {
+  async createTask(dto: CreateTaskDto, authorId: UserEntity['id']) {
     logger.info(`Создание задачи`);
 
     if (dto.assigneeId) await this.user.profile(dto.assigneeId);
