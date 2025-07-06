@@ -47,9 +47,11 @@
   "typings": "./lib/index.d.ts",
   "dependencies": {
     "@redis/client": "^5.5.6",
+    "axios": "^1.10.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "cron": "^4.3.1",
     "express": "^4.21.2",
     "express-async-errors": "^3.1.1",
     "inversify": "^7.5.2",

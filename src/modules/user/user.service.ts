@@ -1,9 +1,12 @@
+import axios from 'axios';
 import { compare, hash } from 'bcrypt';
+import { CronJob } from 'cron';
 import { inject, injectable } from 'inversify';
 import { redisRefreshTokenKey } from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
-import { UserEntity } from '../../database';
+import { LoginInfoEntity, UserEntity } from '../../database';
 import {
+  BadRequestException,
   ConflictException,
   NotFoundException,
   UnauthorizedException,
@@ -12,18 +15,67 @@ import logger from '../../logger';
 import { TimeInSeconds } from '../../shared';
 import { JwtService } from '../jwt/jwt.service';
 import { LoginUserDto, PasswordChangeDto, RefreshTokenDto, RegisterUserDto } from './dto';
+import { LoginAttempt } from './user-login.types';
 
 @injectable()
 export class UserService {
+  private readonly jobTmpDomains = new CronJob(
+    '* * * * *',
+    this.loadTmpDomains,
+    null,
+    true,
+    'Europe/Moscow',
+  );
+
+  private readonly jobLoginInfo = new CronJob(
+    '*/10 * * * * *',
+    () => this.loginInfoToDatabase(),
+    null,
+    true,
+    'Europe/Moscow',
+  );
+
+  private tmpDomains: string[] = [];
+  private loginInfo: LoginAttempt[] = [];
+
   constructor(
     @inject(RedisService)
     private readonly redis: RedisService,
     @inject(JwtService)
     private readonly jwtService: JwtService,
-  ) {}
+  ) {
+    this.loadTmpDomains();
+  }
+
+  async loginInfoToDatabase() {
+    if (!this.loginInfo.length) {
+      logger.info('Нечего сохранять');
+      return;
+    }
+
+    await LoginInfoEntity.bulkCreate(this.loginInfo);
+
+    this.loginInfo = [];
+  }
+
+  async loadTmpDomains() {
+    const { data: tmpDomains } = await axios.get(
+      'https://raw.githubusercontent.com/disposable/disposable-email-domains/refs/heads/master/domains.txt',
+    );
+
+    this.tmpDomains = tmpDomains.split('\n');
+
+    logger.info(`Getting ${this.tmpDomains.length} domains`);
+  }
 
   async register(dto: RegisterUserDto) {
     logger.info(`Регистрация нового пользователя email = ${dto.email}`);
+
+    const emailDomain = dto.email.split('@')[1];
+
+    if (this.tmpDomains.includes(emailDomain)) {
+      throw new BadRequestException('Регистрация на временную почту запрещена');
+    }
 
     const exist = await UserEntity.findOne({ where: { email: dto.email } });
     if (exist) {
@@ -45,12 +97,40 @@ export class UserService {
   async login(dto: LoginUserDto) {
     logger.info(`Пришли данные для логина. email = ${dto.email}`);
 
+    let newLogin: LoginAttempt = {
+      time: new Date().toString(),
+      ip: '1',
+      email: dto.email,
+      success: true,
+    };
+
     const user = await UserEntity.findOne({
       where: { email: dto.email },
     });
-    if (!user || !(await compare(dto.password, user.password))) {
-      throw new UnauthorizedException('Не найден email или неправильный пароль');
+    if (!user) {
+      newLogin = { ...newLogin, success: false, failReason: 'Такого пользователя нет' };
+
+      this.loginInfo.push(newLogin);
+
+      throw new UnauthorizedException('Такого пользователя нет');
     }
+    if (!(await compare(dto.password, user.password))) {
+      newLogin = { ...newLogin, success: false, failReason: 'Неверный пароль' };
+
+      this.loginInfo.push(newLogin);
+
+      throw new UnauthorizedException('Неверный пароль');
+    }
+    if (!user.isActive) {
+      newLogin = { ...newLogin, success: false, failReason: 'Пользователь заблокирован' };
+
+      this.loginInfo.push(newLogin);
+
+      throw new UnauthorizedException('Пользователь заблокирован');
+    }
+
+    this.loginInfo.push(newLogin);
+    logger.info(`${this.loginInfo.length}`);
 
     return await this.getTokenPair(user);
   }
