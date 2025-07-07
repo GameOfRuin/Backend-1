@@ -7,7 +7,7 @@ import {
   redisTasksKey,
 } from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
-import { TaskEntity, UserEntity } from '../../database';
+import { DepartmentEntity, TaskEntity, UserEntity } from '../../database';
 import { NotFoundException } from '../../exceptions';
 import logger from '../../logger';
 import { UserService } from '../user/user.service';
@@ -27,8 +27,14 @@ export class TaskService {
       model: UserEntity,
       as: 'author',
       attributes: ['id', 'name'],
+      include: [{ model: DepartmentEntity, attributes: ['id', 'title'] }],
     },
-    { model: UserEntity, as: 'assignee', attributes: ['id', 'name'] },
+    {
+      model: UserEntity,
+      as: 'assignee',
+      attributes: ['id', 'name'],
+      include: [{ model: DepartmentEntity, attributes: ['id', 'title'] }],
+    },
   ];
 
   async getTasks(dto: GetTaskListDto) {

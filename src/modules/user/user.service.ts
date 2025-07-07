@@ -28,7 +28,7 @@ export class UserService {
   );
 
   private readonly jobLoginInfo = new CronJob(
-    '*/10 * * * * *',
+    '*/30 * * * * *',
     () => this.loginInfoToDatabase(),
     null,
     true,
@@ -55,6 +55,8 @@ export class UserService {
 
     await LoginInfoEntity.bulkCreate(this.loginInfo);
 
+    logger.info(`Сохранено ${this.loginInfo.length} новых логинов`);
+
     this.loginInfo = [];
   }
 
@@ -63,9 +65,15 @@ export class UserService {
       'https://raw.githubusercontent.com/disposable/disposable-email-domains/refs/heads/master/domains.txt',
     );
 
+    // const tmpDomainsSplit: string[] = tmpDomains
+    //   .split('\n')
+    //   .reduce((acc: [], curr: string) => {
+    //     this.redis.delete(redisTmpDomain(curr));
+    //   }, []);
+
     this.tmpDomains = tmpDomains.split('\n');
 
-    logger.info(`Getting ${this.tmpDomains.length} domains`);
+    logger.info(`Получено ${this.tmpDomains.length} доменов`);
   }
 
   async register(dto: RegisterUserDto) {
