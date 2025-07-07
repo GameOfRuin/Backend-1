@@ -14,6 +14,7 @@ import DepartmentModule from './modules/department/department.module';
 import JwtModule from './modules/jwt/jwt.module';
 import { TaskController } from './modules/task/task.controller';
 import TaskModule from './modules/task/task.module';
+import TelegramModule from './modules/telegram/telegram.module';
 import { UserAmqpController } from './modules/user/user.amqp-controller';
 import { UserController } from './modules/user/user.controller';
 import UserModule from './modules/user/user.module';
@@ -30,6 +31,7 @@ const bootstrap = async () => {
     RedisModule,
     RabbitMqModule,
     JwtModule,
+    TelegramModule,
   );
 
   const server = express();

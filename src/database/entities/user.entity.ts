@@ -51,6 +51,12 @@ export class UserEntity extends Model {
   })
   public password: string;
 
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  public telegramId: string;
+
   @ForeignKey(() => DepartmentEntity)
   @Column({
     type: DataType.INTEGER,

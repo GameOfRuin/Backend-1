@@ -2,6 +2,7 @@ import { inject, injectable } from 'inversify';
 import logger from '../../logger';
 import { NEW_REGISTRATION_QUEUE } from '../../message-broker/rabbitmq.queues';
 import { RabbitMqService } from '../../message-broker/rabbitmq.service';
+import { TelegramService } from '../telegram/telegram.service';
 import { UserService } from './user.service';
 import { NewRegistrationMessage } from './user.types';
 
@@ -12,6 +13,8 @@ export class UserAmqpController {
     private readonly rabbitMqService: RabbitMqService,
     @inject(UserService)
     private readonly userService: UserService,
+    @inject(TelegramService)
+    private readonly telegramService: TelegramService,
   ) {
     this.assertHandler();
   }
@@ -33,5 +36,7 @@ export class UserAmqpController {
     const { id, name, email } = data;
     const message = `Новая регистрация id=${id} name=${name} email=${email}`;
     logger.info(message);
+
+    await this.telegramService.sendTelegramMessage(message);
   }
 }
