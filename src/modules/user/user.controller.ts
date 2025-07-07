@@ -50,6 +50,11 @@ export class UserController {
       JwtGuard(this.jwtService),
       (req: Request, res: Response) => this.profile(req, res),
     );
+    this.router.get(
+      '/profile/telegram-link',
+      JwtGuard(this.jwtService),
+      (req: Request, res: Response) => this.telegramLink(req, res),
+    );
   }
 
   async register(req: Request, res: Response) {
@@ -107,6 +112,14 @@ export class UserController {
     const { id } = validate(IdNumberDto, req.params);
 
     const result = await this.userService.changeIsActive(id, active);
+
+    res.json(result);
+  }
+
+  async telegramLink(req: Request, res: Response) {
+    const id = res.locals.user.id;
+
+    const result = await this.userService.telegramLink(id);
 
     res.json(result);
   }

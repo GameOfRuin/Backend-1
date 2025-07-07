@@ -2,7 +2,7 @@ import axios from 'axios';
 import { compare, hash } from 'bcrypt';
 import { CronJob } from 'cron';
 import { inject, injectable } from 'inversify';
-import { redisRefreshTokenKey } from '../../cache/redis.keys';
+import { redisRefreshTokenKey, redisUserToken } from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
 import { LoginInfoEntity, UserEntity } from '../../database';
 import {
@@ -16,6 +16,7 @@ import { NEW_REGISTRATION_QUEUE } from '../../message-broker/rabbitmq.queues';
 import { RabbitMqService } from '../../message-broker/rabbitmq.service';
 import { TimeInSeconds } from '../../shared';
 import { JwtService } from '../jwt/jwt.service';
+import { TelegramService } from '../telegram/telegram.service';
 import { LoginUserDto, PasswordChangeDto, RefreshTokenDto, RegisterUserDto } from './dto';
 import { NewRegistrationMessage } from './user.types';
 import { LoginAttempt } from './user-login.types';
@@ -48,6 +49,8 @@ export class UserService {
     private readonly jwtService: JwtService,
     @inject(RabbitMqService)
     private readonly rabbitMqService: RabbitMqService,
+    @inject(TelegramService)
+    private readonly telegramService: TelegramService,
   ) {
     this.loadTmpDomains();
   }
@@ -240,5 +243,15 @@ export class UserService {
       { EX: TimeInSeconds.day },
     );
     return tokens;
+  }
+
+  async telegramLink(id: UserEntity['id']) {
+    logger.info('Пришел запрос получение теллеграм ссылки');
+
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await this.redis.set(redisUserToken(token), { id }, { EX: 5 * TimeInSeconds.minute });
+
+    return `https://t.me/Backend11bot_bot?start=${token}`;
   }
 }

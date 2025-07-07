@@ -12,3 +12,4 @@ export const redisAuthoredTask = (query: GetTaskListDto, authorId: UserEntity['i
 export const redisAssignedTask = (query: GetTaskListDto, assigneeId: UserEntity['id']) =>
   `tasksAssigned:limit=${query.limit}:offset=${query.offset}:sortBy=${query.sortBy}:sortDirection=${query.sortDirection}:search=${query.search}:authoredId=${assigneeId}`;
 export const redisTmpDomain = (domain: string) => `tmpDomain:domain=${domain}`;
+export const redisUserToken = (token: string) => `tokenUser:token=${token}`;
