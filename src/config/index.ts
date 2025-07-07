@@ -8,6 +8,7 @@ readEnv();
 const rawConfig = {
   port: process.env.PORT,
   redisUrl: process.env.REDIS_URL,
+  rabbitUrl: process.env.RABBIT_URL,
   postgres: {
     host: process.env.POSTGRESQL_HOST,
     database: process.env.POSTGRESQL_DATABASE,

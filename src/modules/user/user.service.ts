@@ -12,9 +12,12 @@ import {
   UnauthorizedException,
 } from '../../exceptions';
 import logger from '../../logger';
+import { NEW_REGISTRATION_QUEUE } from '../../message-broker/rabbitmq.queues';
+import { RabbitMqService } from '../../message-broker/rabbitmq.service';
 import { TimeInSeconds } from '../../shared';
 import { JwtService } from '../jwt/jwt.service';
 import { LoginUserDto, PasswordChangeDto, RefreshTokenDto, RegisterUserDto } from './dto';
+import { NewRegistrationMessage } from './user.types';
 import { LoginAttempt } from './user-login.types';
 
 @injectable()
@@ -43,6 +46,8 @@ export class UserService {
     private readonly redis: RedisService,
     @inject(JwtService)
     private readonly jwtService: JwtService,
+    @inject(RabbitMqService)
+    private readonly rabbitMqService: RabbitMqService,
   ) {
     this.loadTmpDomains();
   }
@@ -97,6 +102,15 @@ export class UserService {
       email: dto.email,
       password: dto.password,
     });
+
+    const message: NewRegistrationMessage = {
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+    };
+
+    await this.rabbitMqService.channel.sendToQueue(NEW_REGISTRATION_QUEUE, message);
+
     const { password, ...user } = newUser.toJSON();
 
     return user;
