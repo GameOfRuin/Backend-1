@@ -9,6 +9,7 @@ import { connectToPostgresql } from './database';
 import logger from './logger';
 import RabbitMqModule from './message-broker/rabbitmq.module';
 import { errorHandler } from './middlewares';
+import { DepartmentAmqpController } from './modules/department/department.amqp-controller';
 import { DepartmentController } from './modules/department/department.controller';
 import DepartmentModule from './modules/department/department.module';
 import JwtModule from './modules/jwt/jwt.module';
@@ -45,6 +46,7 @@ const bootstrap = async () => {
   server.use('/task', taskController.router);
   server.use('/department', departmentController.router);
 
+  appContainer.get(DepartmentAmqpController);
   appContainer.get(UserAmqpController);
 
   server.use(errorHandler);

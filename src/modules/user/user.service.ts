@@ -254,4 +254,8 @@ export class UserService {
 
     return `https://t.me/Backend11bot_bot?start=${token}`;
   }
+
+  async getAllAdminsTelegramId() {
+    return await UserEntity.findAll({ where: { role: 'admin' } });
+  }
 }

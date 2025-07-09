@@ -1,13 +1,12 @@
 import { inject, injectable } from 'inversify';
-import logger from '../../logger';
-import { NEW_REGISTRATION_QUEUE } from '../../message-broker/rabbitmq.queues';
+import { NEW_DEPARTMENT_QUEUE } from '../../message-broker/rabbitmq.queues';
 import { RabbitMqService } from '../../message-broker/rabbitmq.service';
 import { TelegramService } from '../telegram/telegram.service';
-import { UserService } from './user.service';
-import { NewRegistrationMessage } from './user.types';
+import { UserService } from '../user/user.service';
+import { NewDepartmentMessage } from './department.types';
 
 @injectable()
-export class UserAmqpController {
+export class DepartmentAmqpController {
   constructor(
     @inject(RabbitMqService)
     private readonly rabbitMqService: RabbitMqService,
@@ -22,9 +21,8 @@ export class UserAmqpController {
   async assertHandler() {
     await this.rabbitMqService.channel.waitForConnect();
     await this.rabbitMqService.channel.consume(
-      NEW_REGISTRATION_QUEUE,
-      (data) =>
-        this.handleNewRegistrationQueue(JSON.parse(data.content.toString('utf-8'))),
+      NEW_DEPARTMENT_QUEUE,
+      (data) => this.sendNewDepartamintQueue(JSON.parse(data.content.toString('utf-8'))),
       {
         noAck: true, // Акаем автоматически
         prefetch: 2, // Параллельно обрабатываем макс 2 задачи
@@ -32,10 +30,9 @@ export class UserAmqpController {
     );
   }
 
-  async handleNewRegistrationQueue(data: NewRegistrationMessage) {
-    const { id, name, email } = data;
-    const message = `Новая регистрация id=${id} name=${name} email=${email}`;
-    logger.info(message);
+  async sendNewDepartamintQueue(data: NewDepartmentMessage) {
+    const { name, title } = data;
+    const message = `Пользователь ${name} создал новый департамент ${title}`;
 
     const allAdmins = await this.userService.getAllAdminsTelegramId();
 

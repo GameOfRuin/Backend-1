@@ -14,6 +14,9 @@ export class AppConfigDto {
   @IsString()
   rabbitUrl: string;
 
+  @IsString()
+  telegramToken: string;
+
   @ValidateNested()
   @Transform(({ value }) => plainToInstance(PostgresConfigDto, value))
   postgres: PostgresConfigDto;
