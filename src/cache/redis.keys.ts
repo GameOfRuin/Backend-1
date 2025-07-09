@@ -1,28 +1,15 @@
 import { TaskEntity, UserEntity } from '../database';
-import { TaskSortByEnum } from '../modules/task/dto/sort-by.dto';
+import { GetTaskListDto } from '../modules/task/dto/sort-by.dto';
 import { RefreshTokenDto } from '../modules/user/dto';
-import { SortDirectionEnum } from '../shared';
 
 export const redisTaskKey = (id: TaskEntity['id']) => `task:${id}`;
-export const redisTasksKey = (limit: number, offset: number) =>
-  `tasks:limit=${limit}:offset=${offset}`;
+export const redisTasksKey = (query: GetTaskListDto) =>
+  `tasks:limit=${query.limit}:offset=${query.offset}:sortBy=${query.sortBy}:sortDirection=${query.sortDirection}`;
 export const redisRefreshTokenKey = (refreshToken: RefreshTokenDto['refreshToken']) =>
   `refresh:${refreshToken}`;
-export const redisAuthoredTask = (
-  limit: number,
-  offset: number,
-  sortBy: TaskSortByEnum,
-  sortDirection: SortDirectionEnum,
-  authoredId: UserEntity['id'],
-  search?: string,
-) =>
-  `tasksAuthored:${redisTasksKey(limit, offset)}:sortBy=${sortBy}:sortDirection=${sortDirection}:search=${search}:authoredId=${authoredId}`;
-export const redisAssignedTask = (
-  limit: number,
-  offset: number,
-  sortBy: TaskSortByEnum,
-  sortDirection: SortDirectionEnum,
-  authoredId: UserEntity['id'],
-  search?: string,
-) =>
-  `tasksAssigned:${redisTasksKey(limit, offset)}:sortBy=${sortBy}:sortDirection=${sortDirection}:search=${search}:authoredId=${authoredId}`;
+export const redisAuthoredTask = (query: GetTaskListDto, authorId: UserEntity['id']) =>
+  `tasksAuthored:limit=${query.limit}:offset=${query.offset}:sortBy=${query.sortBy}:sortDirection=${query.sortDirection}:search=${query.search}:authoredId=${authorId}`;
+export const redisAssignedTask = (query: GetTaskListDto, assigneeId: UserEntity['id']) =>
+  `tasksAssigned:limit=${query.limit}:offset=${query.offset}:sortBy=${query.sortBy}:sortDirection=${query.sortDirection}:search=${query.search}:authoredId=${assigneeId}`;
+export const redisTmpDomain = (domain: string) => `tmpDomain:domain=${domain}`;
+export const redisUserToken = (token: string) => `tokenUser:token=${token}`;

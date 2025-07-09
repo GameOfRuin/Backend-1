@@ -11,6 +11,9 @@ export class AppConfigDto {
   @IsString()
   redisUrl: string;
 
+  @IsString()
+  rabbitUrl: string;
+
   @ValidateNested()
   @Transform(({ value }) => plainToInstance(PostgresConfigDto, value))
   postgres: PostgresConfigDto;

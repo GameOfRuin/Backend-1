@@ -1,28 +1,97 @@
+import axios from 'axios';
 import { compare, hash } from 'bcrypt';
+import { CronJob } from 'cron';
 import { inject, injectable } from 'inversify';
-import { redisRefreshTokenKey } from '../../cache/redis.keys';
+import { redisRefreshTokenKey, redisUserToken } from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
-import { UserEntity } from '../../database';
+import { LoginInfoEntity, UserEntity } from '../../database';
 import {
+  BadRequestException,
   ConflictException,
   NotFoundException,
   UnauthorizedException,
 } from '../../exceptions';
 import logger from '../../logger';
+import { NEW_REGISTRATION_QUEUE } from '../../message-broker/rabbitmq.queues';
+import { RabbitMqService } from '../../message-broker/rabbitmq.service';
+import { TimeInSeconds } from '../../shared';
 import { JwtService } from '../jwt/jwt.service';
+import { TelegramService } from '../telegram/telegram.service';
 import { LoginUserDto, PasswordChangeDto, RefreshTokenDto, RegisterUserDto } from './dto';
+import { NewRegistrationMessage } from './user.types';
+import { LoginAttempt } from './user-login.types';
 
 @injectable()
 export class UserService {
+  private readonly jobTmpDomains = new CronJob(
+    '* * * * *',
+    this.loadTmpDomains,
+    null,
+    true,
+    'Europe/Moscow',
+  );
+
+  private readonly jobLoginInfo = new CronJob(
+    '*/30 * * * * *',
+    () => this.loginInfoToDatabase(),
+    null,
+    true,
+    'Europe/Moscow',
+  );
+
+  private tmpDomains: string[] = [];
+  private loginInfo: LoginAttempt[] = [];
+
   constructor(
     @inject(RedisService)
     private readonly redis: RedisService,
     @inject(JwtService)
     private readonly jwtService: JwtService,
-  ) {}
+    @inject(RabbitMqService)
+    private readonly rabbitMqService: RabbitMqService,
+    @inject(TelegramService)
+    private readonly telegramService: TelegramService,
+  ) {
+    this.loadTmpDomains();
+  }
+
+  async loginInfoToDatabase() {
+    if (!this.loginInfo.length) {
+      logger.info('Нечего сохранять');
+      return;
+    }
+
+    await LoginInfoEntity.bulkCreate(this.loginInfo);
+
+    logger.info(`Сохранено ${this.loginInfo.length} новых логинов`);
+
+    this.loginInfo = [];
+  }
+
+  async loadTmpDomains() {
+    const { data: tmpDomains } = await axios.get(
+      'https://raw.githubusercontent.com/disposable/disposable-email-domains/refs/heads/master/domains.txt',
+    );
+
+    // const tmpDomainsSplit: string[] = tmpDomains
+    //   .split('\n')
+    //   .reduce((acc: [], curr: string) => {
+    //     this.redis.delete(redisTmpDomain(curr));
+    //   }, []);
+
+    this.tmpDomains = tmpDomains.split('\n');
+
+    logger.info(`Получено ${this.tmpDomains.length} доменов`);
+  }
 
   async register(dto: RegisterUserDto) {
     logger.info(`Регистрация нового пользователя email = ${dto.email}`);
+
+    const emailDomain = dto.email.split('@')[1];
+
+    if (this.tmpDomains.includes(emailDomain)) {
+      throw new BadRequestException('Регистрация на временную почту запрещена');
+    }
 
     const exist = await UserEntity.findOne({ where: { email: dto.email } });
     if (exist) {
@@ -36,6 +105,15 @@ export class UserService {
       email: dto.email,
       password: dto.password,
     });
+
+    const message: NewRegistrationMessage = {
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+    };
+
+    await this.rabbitMqService.channel.sendToQueue(NEW_REGISTRATION_QUEUE, message);
+
     const { password, ...user } = newUser.toJSON();
 
     return user;
@@ -44,21 +122,55 @@ export class UserService {
   async login(dto: LoginUserDto) {
     logger.info(`Пришли данные для логина. email = ${dto.email}`);
 
+    let newLogin: LoginAttempt = {
+      time: new Date().toString(),
+      ip: '1',
+      email: dto.email,
+      success: true,
+    };
+
     const user = await UserEntity.findOne({
       where: { email: dto.email },
     });
-    if (!user || !(await compare(dto.password, user.password))) {
-      throw new UnauthorizedException('Не найден email или неправильный пароль');
+    if (!user) {
+      newLogin = { ...newLogin, success: false, failReason: 'Такого пользователя нет' };
+
+      this.loginInfo.push(newLogin);
+
+      throw new UnauthorizedException('Такого пользователя нет');
     }
+    if (!(await compare(dto.password, user.password))) {
+      newLogin = { ...newLogin, success: false, failReason: 'Неверный пароль' };
+
+      this.loginInfo.push(newLogin);
+
+      throw new UnauthorizedException('Неверный пароль');
+    }
+    if (!user.isActive) {
+      newLogin = { ...newLogin, success: false, failReason: 'Пользователь заблокирован' };
+
+      this.loginInfo.push(newLogin);
+
+      throw new UnauthorizedException('Пользователь заблокирован');
+    }
+
+    this.loginInfo.push(newLogin);
+    logger.info(`${this.loginInfo.length}`);
 
     return await this.getTokenPair(user);
   }
 
-  async logout(refreshToken: RefreshTokenDto['refreshToken']) {
+  async logout(refreshToken: RefreshTokenDto['refreshToken'], userId: UserEntity['id']) {
     logger.info('Пришел запрос на logout');
 
-    const idUser = this.redis.get(redisRefreshTokenKey(refreshToken));
-    if (!idUser) {
+    const data = await this.redis.get(redisRefreshTokenKey(refreshToken));
+    if (!data) {
+      throw new UnauthorizedException();
+    }
+
+    const { id } = data;
+
+    if (userId !== id) {
       throw new UnauthorizedException();
     }
 
@@ -70,7 +182,17 @@ export class UserService {
   async refresh(token: RefreshTokenDto['refreshToken'], user: UserEntity) {
     logger.info('Пришел запрос на обновление RefreshToken');
 
-    await this.logout(token);
+    const data = await this.redis.get(redisRefreshTokenKey(token));
+    if (!data) {
+      throw new UnauthorizedException();
+    }
+
+    const { id } = data;
+    if (user.id !== id) {
+      throw new UnauthorizedException();
+    }
+
+    await this.redis.delete(redisRefreshTokenKey(token));
 
     return await this.getTokenPair(user);
   }
@@ -87,7 +209,7 @@ export class UserService {
     return { message: 'Смена пароля' };
   }
 
-  async profile(id: UserEntity['id']) {
+  async profile(id: UserEntity['id'] | undefined) {
     logger.info(`Чтение профиля userId=${id}`);
 
     const user = await UserEntity.findByPk(id, {
@@ -95,41 +217,20 @@ export class UserService {
     });
 
     if (!user) {
-      throw new Error('Not Found');
+      throw new NotFoundException('Пользователь не найден');
     }
 
     return user;
   }
 
-  async findUser(id: UserEntity['id'] | undefined) {
-    const user = await UserEntity.findOne({
-      where: { id },
-    });
+  async changeIsActive(id: UserEntity['id'], isActive: boolean) {
+    logger.info(`Пришл запрос на ${isActive ? 'раз' : ''}блокировку пользователя ${id}`);
 
-    if (!user) {
-      throw new NotFoundException('Исполнитель не найден');
-    }
+    await this.profile(id);
 
-    return user;
-  }
+    await UserEntity.update({ isActive }, { where: { id } });
 
-  async block(id: UserEntity['id'], unBlock?: boolean) {
-    logger.info(`Блокировка пользователя по id=${id}`);
-
-    const value = unBlock ?? false;
-
-    await this.findUser(id);
-
-    await UserEntity.update({ isActive: value }, { where: { id } });
-
-    return { message: `Пользователь ${id}  заблокирован` };
-  }
-  async unBlock(id: UserEntity['id']) {
-    logger.info(`Разблокировка пользователя по id=${id}`);
-
-    await this.block(id, true);
-
-    return { message: 'Пользователь разблокирован' };
+    return { message: `Пользователь ${id} ${isActive ? 'раз' : 'за'}блокирован` };
   }
 
   async getTokenPair(user: UserEntity) {
@@ -139,8 +240,18 @@ export class UserService {
     await this.redis.set(
       redisRefreshTokenKey(tokens.refreshSecret),
       { id },
-      { EX: 64000 },
+      { EX: TimeInSeconds.day },
     );
     return tokens;
+  }
+
+  async telegramLink(id: UserEntity['id']) {
+    logger.info('Пришел запрос получение теллеграм ссылки');
+
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await this.redis.set(redisUserToken(token), { id }, { EX: 5 * TimeInSeconds.minute });
+
+    return `https://t.me/Backend11bot_bot?start=${token}`;
   }
 }

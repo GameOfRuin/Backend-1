@@ -7,12 +7,15 @@ import RedisModule from './cache/redis.module';
 import { appConfig } from './config';
 import { connectToPostgresql } from './database';
 import logger from './logger';
+import RabbitMqModule from './message-broker/rabbitmq.module';
 import { errorHandler } from './middlewares';
 import { DepartmentController } from './modules/department/department.controller';
 import DepartmentModule from './modules/department/department.module';
 import JwtModule from './modules/jwt/jwt.module';
 import { TaskController } from './modules/task/task.controller';
 import TaskModule from './modules/task/task.module';
+import TelegramModule from './modules/telegram/telegram.module';
+import { UserAmqpController } from './modules/user/user.amqp-controller';
 import { UserController } from './modules/user/user.controller';
 import UserModule from './modules/user/user.module';
 
@@ -26,7 +29,9 @@ const bootstrap = async () => {
     TaskModule,
     DepartmentModule,
     RedisModule,
+    RabbitMqModule,
     JwtModule,
+    TelegramModule,
   );
 
   const server = express();
@@ -39,6 +44,8 @@ const bootstrap = async () => {
   server.use('/user', userController.router);
   server.use('/task', taskController.router);
   server.use('/department', departmentController.router);
+
+  appContainer.get(UserAmqpController);
 
   server.use(errorHandler);
 

@@ -47,10 +47,10 @@ export class TaskEntity extends Model {
     type: DataType.INTEGER,
     allowNull: true,
   })
-  public authoredId: number;
+  public authorId: number;
 
-  @BelongsTo(() => UserEntity, { as: 'authored', foreignKey: 'authoredId' })
-  public authored: UserEntity;
+  @BelongsTo(() => UserEntity, { as: 'author', foreignKey: 'authorId' })
+  public author: UserEntity;
 
   @ForeignKey(() => UserEntity)
   @Column({
