@@ -2,7 +2,13 @@ import axios from 'axios';
 import { compare, hash } from 'bcrypt';
 import { CronJob } from 'cron';
 import { inject, injectable } from 'inversify';
-import { redisRefreshTokenKey, redisUserToken } from '../../cache/redis.keys';
+import { v4 } from 'uuid';
+import {
+  redisMailConfirmation,
+  redisPasswordRestore,
+  redisRefreshTokenKey,
+  redisUserToken,
+} from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
 import { LoginInfoEntity, UserEntity } from '../../database';
 import {
@@ -12,13 +18,28 @@ import {
   UnauthorizedException,
 } from '../../exceptions';
 import logger from '../../logger';
-import { NEW_REGISTRATION_QUEUE } from '../../message-broker/rabbitmq.queues';
+import {
+  EMAIL_CONFIRMATION_QUEUE,
+  NEW_REGISTRATION_QUEUE,
+  PASSWORD_RESTORE_QUEUE,
+} from '../../message-broker/rabbitmq.queues';
 import { RabbitMqService } from '../../message-broker/rabbitmq.service';
 import { TimeInSeconds } from '../../shared';
 import { JwtService } from '../jwt/jwt.service';
 import { TelegramService } from '../telegram/telegram.service';
-import { LoginUserDto, PasswordChangeDto, RefreshTokenDto, RegisterUserDto } from './dto';
-import { NewRegistrationMessage } from './user.types';
+import {
+  ApproveDto,
+  LoginUserDto,
+  PasswordChangeDto,
+  PasswordRestoreDto,
+  RefreshTokenDto,
+  RegisterUserDto,
+} from './dto';
+import { PasswordRestoreChangeDto } from './dto/password-restore-change.dto';
+import {
+  MailConfirmationAndPasswordRestoreMessage,
+  NewRegistrationMessage,
+} from './user.types';
 import { LoginAttempt } from './user-login.types';
 
 @injectable()
@@ -119,6 +140,46 @@ export class UserService {
     return user;
   }
 
+  async sendApproval(mail: UserEntity['email']) {
+    logger.info(`Подтверждение емейла = ${mail}`);
+
+    const codeConfirmation = await this.redis.get(redisMailConfirmation(mail));
+    if (codeConfirmation) {
+      await this.redis.delete(redisMailConfirmation(mail));
+    }
+
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await this.redis.set(
+      redisUserToken(mail),
+      { token },
+      { EX: 5 * TimeInSeconds.minute },
+    );
+    const message: MailConfirmationAndPasswordRestoreMessage = {
+      code: token,
+      email: mail,
+    };
+
+    await this.rabbitMqService.channel.sendToQueue(EMAIL_CONFIRMATION_QUEUE, message);
+
+    return { message: 'Код подтверждения отправлен на вашу почту' };
+  }
+
+  async approve(dto: ApproveDto, mail: UserEntity['email']) {
+    logger.info('Подтверждение почты');
+
+    const approveCode = await this.redis.get(redisMailConfirmation(mail));
+    if (approveCode && approveCode.token !== dto.code) {
+      throw new UnauthorizedException('Неверный код');
+    }
+
+    await UserEntity.update({ emailApprove: true }, { where: { email: mail } });
+
+    return {
+      message: 'Почта подтверждена',
+    };
+  }
+
   async login(dto: LoginUserDto) {
     logger.info(`Пришли данные для логина. email = ${dto.email}`);
 
@@ -209,6 +270,42 @@ export class UserService {
     return { message: 'Смена пароля' };
   }
 
+  async passwordRestore(dto: PasswordRestoreDto) {
+    logger.info(`Запрос на восстановление пароля от ${dto.email}`);
+
+    const user = await UserEntity.findOne({ where: { email: dto.email } });
+    if (user) {
+      const code = v4();
+
+      await this.redis.set(
+        redisPasswordRestore(dto.email),
+        { code },
+        { EX: 10 * TimeInSeconds.minute },
+      );
+      const message: MailConfirmationAndPasswordRestoreMessage = {
+        code: code,
+        email: dto.email,
+      };
+
+      await this.rabbitMqService.channel.sendToQueue(PASSWORD_RESTORE_QUEUE, message);
+    }
+
+    return { message: 'Код для сброса пароля отправлен на почту' };
+  }
+  async passwordRestoreChange(dto: PasswordRestoreChangeDto) {
+    logger.info('Пришел код на смену пароля');
+
+    const codeCache = await this.redis.get(redisPasswordRestore(dto.email));
+    if (!codeCache || codeCache.code !== dto.code) {
+      throw new UnauthorizedException();
+    }
+    dto.password = await hash(dto.password, 10);
+
+    await UserEntity.update(dto, { where: { email: dto.email } });
+
+    return { message: 'Смена пароля' };
+  }
+
   async profile(id: UserEntity['id'] | undefined) {
     logger.info(`Чтение профиля userId=${id}`);
 
@@ -253,5 +350,9 @@ export class UserService {
     await this.redis.set(redisUserToken(token), { id }, { EX: 5 * TimeInSeconds.minute });
 
     return `https://t.me/Backend11bot_bot?start=${token}`;
+  }
+
+  async getAllAdminsTelegramId() {
+    return await UserEntity.findAll({ where: { role: 'admin' } });
   }
 }

@@ -22,7 +22,7 @@ export class DepartmentController {
     const authentication = JwtGuard(this.jwtService);
     const authorization = [authentication, RoleGuard(UserRoleEnum.admin)];
 
-    this.router.post('/', (req: Request, res: Response) =>
+    this.router.post('/', authorization, (req: Request, res: Response) =>
       this.createDepartment(req, res),
     );
     this.router.get('/', (req: Request, res: Response) =>
@@ -35,8 +35,9 @@ export class DepartmentController {
 
   async createDepartment(req: Request, res: Response) {
     const dto = validate(CreateDepartmentDto, req.body);
+    const name = res.locals.user.name;
 
-    const result = await this.departmentService.createDepartment(dto);
+    const result = await this.departmentService.createDepartment(dto, name);
 
     res.json(result);
   }

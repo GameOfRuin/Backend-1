@@ -9,6 +9,7 @@ const rawConfig = {
   port: process.env.PORT,
   redisUrl: process.env.REDIS_URL,
   rabbitUrl: process.env.RABBIT_URL,
+  telegramToken: process.env.TELEGRAM_TOKEN,
   postgres: {
     host: process.env.POSTGRESQL_HOST,
     database: process.env.POSTGRESQL_DATABASE,
@@ -19,6 +20,10 @@ const rawConfig = {
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET,
     refreshSecret: process.env.JWT_REFRESH_SECRET,
+  },
+  smtp: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
   },
 };
 

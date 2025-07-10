@@ -2,6 +2,7 @@ import { inject, injectable } from 'inversify';
 import { Telegraf } from 'telegraf';
 import { redisUserToken } from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
+import { appConfig } from '../../config';
 import { UserEntity } from '../../database';
 import logger from '../../logger';
 
@@ -13,7 +14,7 @@ export class TelegramService {
     @inject(RedisService)
     private readonly redis: RedisService,
   ) {
-    this.bot = new Telegraf('7800520704:AAFEGPXl67XwGrp_8BHwEz62jWGgZOdXhMs');
+    this.bot = new Telegraf(appConfig.telegramToken);
     this.initializeBot();
   }
 
@@ -49,8 +50,8 @@ export class TelegramService {
     logger.info('Запуск бота');
   }
 
-  public async sendTelegramMessage(ctx: string) {
-    await this.bot.telegram.sendMessage(5609915965, ctx);
+  public async sendTelegramMessage(id: UserEntity['telegramId'], ctx: string) {
+    await this.bot.telegram.sendMessage(id, ctx);
   }
 
   public async sendTelegramLink(token: string) {}

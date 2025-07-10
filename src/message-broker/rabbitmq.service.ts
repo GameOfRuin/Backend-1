@@ -1,8 +1,10 @@
 import { connect } from 'amqp-connection-manager';
+import { injectable } from 'inversify';
 import { appConfig } from '../config';
 import logger from '../logger';
 import { RABBIT_MQ_QUEUES } from './rabbitmq.queues';
 
+@injectable()
 export class RabbitMqService {
   private readonly connection = connect(appConfig.rabbitUrl);
   public readonly channel = this.connection.createChannel({ json: true });

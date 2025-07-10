@@ -2,6 +2,7 @@ import { plainToInstance, Transform, Type } from 'class-transformer';
 import { IsNumber, IsString, ValidateNested } from 'class-validator';
 import { JwtConfigDto } from './jwt-config.dto';
 import { PostgresConfigDto } from './postgres-config.dto';
+import { SmtpConfigDto } from './smtp-config.dto';
 
 export class AppConfigDto {
   @IsNumber()
@@ -14,6 +15,9 @@ export class AppConfigDto {
   @IsString()
   rabbitUrl: string;
 
+  @IsString()
+  telegramToken: string;
+
   @ValidateNested()
   @Transform(({ value }) => plainToInstance(PostgresConfigDto, value))
   postgres: PostgresConfigDto;
@@ -21,4 +25,8 @@ export class AppConfigDto {
   @ValidateNested()
   @Transform(({ value }) => plainToInstance(JwtConfigDto, value))
   jwt: JwtConfigDto;
+
+  @ValidateNested()
+  @Transform(({ value }) => plainToInstance(SmtpConfigDto, value))
+  smtp: SmtpConfigDto;
 }

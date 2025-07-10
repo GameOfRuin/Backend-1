@@ -46,6 +46,12 @@ export class UserEntity extends Model {
   public email: string;
 
   @Column({
+    type: DataType.BOOLEAN,
+    allowNull: true,
+  })
+  public emailApprove: boolean;
+
+  @Column({
     type: DataType.STRING,
     allowNull: false,
   })
