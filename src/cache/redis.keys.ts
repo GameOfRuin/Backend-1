@@ -13,3 +13,5 @@ export const redisAssignedTask = (query: GetTaskListDto, assigneeId: UserEntity[
   `tasksAssigned:limit=${query.limit}:offset=${query.offset}:sortBy=${query.sortBy}:sortDirection=${query.sortDirection}:search=${query.search}:authoredId=${assigneeId}`;
 export const redisTmpDomain = (domain: string) => `tmpDomain:domain=${domain}`;
 export const redisUserToken = (token: string) => `tokenUser:token=${token}`;
+export const redisMailConfirmation = (mail: UserEntity['email']) =>
+  `mailConfirmation:mail=${mail}`;

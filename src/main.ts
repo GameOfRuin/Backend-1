@@ -13,6 +13,7 @@ import { DepartmentAmqpController } from './modules/department/department.amqp-c
 import { DepartmentController } from './modules/department/department.controller';
 import DepartmentModule from './modules/department/department.module';
 import JwtModule from './modules/jwt/jwt.module';
+import MailModule from './modules/mail/mail.module';
 import { TaskController } from './modules/task/task.controller';
 import TaskModule from './modules/task/task.module';
 import TelegramModule from './modules/telegram/telegram.module';
@@ -33,6 +34,7 @@ const bootstrap = async () => {
     RabbitMqModule,
     JwtModule,
     TelegramModule,
+    MailModule,
   );
 
   const server = express();

@@ -21,6 +21,10 @@ const rawConfig = {
     accessSecret: process.env.JWT_ACCESS_SECRET,
     refreshSecret: process.env.JWT_REFRESH_SECRET,
   },
+  smtp: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
+  },
 };
 
 export const appConfig = validate(AppConfigDto, rawConfig);

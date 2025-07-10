@@ -1,10 +1,14 @@
 import { inject, injectable } from 'inversify';
 import logger from '../../logger';
-import { NEW_REGISTRATION_QUEUE } from '../../message-broker/rabbitmq.queues';
+import {
+  EMAIL_CONFIRMATION_QUEUE,
+  NEW_REGISTRATION_QUEUE,
+} from '../../message-broker/rabbitmq.queues';
 import { RabbitMqService } from '../../message-broker/rabbitmq.service';
+import { MailService } from '../mail/mail.service';
 import { TelegramService } from '../telegram/telegram.service';
 import { UserService } from './user.service';
-import { NewRegistrationMessage } from './user.types';
+import { MailConfirmation, NewRegistrationMessage } from './user.types';
 
 @injectable()
 export class UserAmqpController {
@@ -15,6 +19,8 @@ export class UserAmqpController {
     private readonly userService: UserService,
     @inject(TelegramService)
     private readonly telegramService: TelegramService,
+    @inject(MailService)
+    private readonly mailService: MailService,
   ) {
     this.assertHandler();
   }
@@ -25,6 +31,14 @@ export class UserAmqpController {
       NEW_REGISTRATION_QUEUE,
       (data) =>
         this.handleNewRegistrationQueue(JSON.parse(data.content.toString('utf-8'))),
+      {
+        noAck: true, // Акаем автоматически
+        prefetch: 2, // Параллельно обрабатываем макс 2 задачи
+      },
+    );
+    await this.rabbitMqService.channel.consume(
+      EMAIL_CONFIRMATION_QUEUE,
+      (data) => this.emailConfirmationQueue(JSON.parse(data.content.toString('utf-8'))),
       {
         noAck: true, // Акаем автоматически
         prefetch: 2, // Параллельно обрабатываем макс 2 задачи
@@ -42,5 +56,17 @@ export class UserAmqpController {
     for (const admin of allAdmins) {
       await this.telegramService.sendTelegramMessage(admin.telegramId, message);
     }
+  }
+
+  async emailConfirmationQueue(data: MailConfirmation) {
+    const { code, email } = data;
+    const text = `Ваш код подтверждения ${code}`;
+    const to = `${email}`;
+    const subject = 'Подтверждение почты';
+    logger.info(text);
+
+    const options = { text, subject, to };
+
+    await this.mailService.sendMail(options);
   }
 }

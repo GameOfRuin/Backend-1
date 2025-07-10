@@ -2,7 +2,11 @@ import axios from 'axios';
 import { compare, hash } from 'bcrypt';
 import { CronJob } from 'cron';
 import { inject, injectable } from 'inversify';
-import { redisRefreshTokenKey, redisUserToken } from '../../cache/redis.keys';
+import {
+  redisMailConfirmation,
+  redisRefreshTokenKey,
+  redisUserToken,
+} from '../../cache/redis.keys';
 import { RedisService } from '../../cache/redis.service';
 import { LoginInfoEntity, UserEntity } from '../../database';
 import {
@@ -12,13 +16,22 @@ import {
   UnauthorizedException,
 } from '../../exceptions';
 import logger from '../../logger';
-import { NEW_REGISTRATION_QUEUE } from '../../message-broker/rabbitmq.queues';
+import {
+  EMAIL_CONFIRMATION_QUEUE,
+  NEW_REGISTRATION_QUEUE,
+} from '../../message-broker/rabbitmq.queues';
 import { RabbitMqService } from '../../message-broker/rabbitmq.service';
 import { TimeInSeconds } from '../../shared';
 import { JwtService } from '../jwt/jwt.service';
 import { TelegramService } from '../telegram/telegram.service';
-import { LoginUserDto, PasswordChangeDto, RefreshTokenDto, RegisterUserDto } from './dto';
-import { NewRegistrationMessage } from './user.types';
+import {
+  ApproveDto,
+  LoginUserDto,
+  PasswordChangeDto,
+  RefreshTokenDto,
+  RegisterUserDto,
+} from './dto';
+import { MailConfirmation, NewRegistrationMessage } from './user.types';
 import { LoginAttempt } from './user-login.types';
 
 @injectable()
@@ -117,6 +130,46 @@ export class UserService {
     const { password, ...user } = newUser.toJSON();
 
     return user;
+  }
+
+  async sendApproval(mail: UserEntity['email']) {
+    logger.info(`Подтверждение емейла = ${mail}`);
+
+    const codeConfirmation = await this.redis.get(redisMailConfirmation(mail));
+    if (codeConfirmation) {
+      await this.redis.delete(redisMailConfirmation(mail));
+    }
+
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await this.redis.set(
+      redisUserToken(mail),
+      { token },
+      { EX: 5 * TimeInSeconds.minute },
+    );
+    const message: MailConfirmation = {
+      code: token,
+      email: mail,
+    };
+
+    await this.rabbitMqService.channel.sendToQueue(EMAIL_CONFIRMATION_QUEUE, message);
+
+    return { message: 'Код подтверждения отправлен на вашу почту' };
+  }
+
+  async approve(dto: ApproveDto, mail: UserEntity['email']) {
+    logger.info('Подтверждение почты');
+
+    const approveCode = await this.redis.get(redisMailConfirmation(mail));
+    if (approveCode && approveCode.token !== dto.code) {
+      throw new UnauthorizedException('Неверный код');
+    }
+
+    await UserEntity.update({ emailApprove: true }, { where: { email: mail } });
+
+    return {
+      message: 'Почта подтверждена',
+    };
   }
 
   async login(dto: LoginUserDto) {

@@ -10,3 +10,7 @@ export type NewRegistrationMessage = {
   email: UserEntity['email'];
   name: UserEntity['name'];
 };
+export type MailConfirmation = {
+  code: string;
+  email: UserEntity['email'];
+};

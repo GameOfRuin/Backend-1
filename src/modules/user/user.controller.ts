@@ -6,6 +6,7 @@ import { IdNumberDto } from '../../shared';
 import { validate } from '../../validate';
 import { JwtService } from '../jwt/jwt.service';
 import { LoginUserDto, PasswordChangeDto, RefreshTokenDto, RegisterUserDto } from './dto';
+import { ApproveDto } from './dto/approve.dto';
 import { UserService } from './user.service';
 import { UserRoleEnum } from './user.types';
 
@@ -26,6 +27,16 @@ export class UserController {
       this.register(req, res),
     );
     this.router.post('/login', (req: Request, res: Response) => this.login(req, res));
+    this.router.post(
+      '/email/send-approval',
+      JwtGuard(this.jwtService),
+      (req: Request, res: Response) => this.sendApproval(req, res),
+    );
+    this.router.post(
+      '/email/approve',
+      JwtGuard(this.jwtService),
+      (req: Request, res: Response) => this.approve(req, res),
+    );
     this.router.post(
       '/refresh',
       JwtGuard(this.jwtService),
@@ -61,6 +72,23 @@ export class UserController {
     const dto = validate(RegisterUserDto, req.body);
 
     const result = await this.userService.register(dto);
+
+    res.json(result);
+  }
+
+  async sendApproval(req: Request, res: Response) {
+    const email = res.locals.user.email;
+
+    const result = await this.userService.sendApproval(email);
+
+    res.json(result);
+  }
+
+  async approve(req: Request, res: Response) {
+    const dto = validate(ApproveDto, req.body);
+    const email = res.locals.user.email;
+
+    const result = await this.userService.approve(dto, email);
 
     res.json(result);
   }
@@ -108,6 +136,7 @@ export class UserController {
 
     res.json(result);
   }
+
   async changeIsActive(req: Request, res: Response, active: boolean) {
     const { id } = validate(IdNumberDto, req.params);
 
