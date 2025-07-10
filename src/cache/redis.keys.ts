@@ -15,3 +15,5 @@ export const redisTmpDomain = (domain: string) => `tmpDomain:domain=${domain}`;
 export const redisUserToken = (token: string) => `tokenUser:token=${token}`;
 export const redisMailConfirmation = (mail: UserEntity['email']) =>
   `mailConfirmation:mail=${mail}`;
+export const redisPasswordRestore = (mail: UserEntity['email']) =>
+  `redisPasswordRestore:mail=${mail}`;

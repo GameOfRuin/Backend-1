@@ -5,8 +5,15 @@ import { RoleGuard } from '../../guards/role.guard';
 import { IdNumberDto } from '../../shared';
 import { validate } from '../../validate';
 import { JwtService } from '../jwt/jwt.service';
-import { LoginUserDto, PasswordChangeDto, RefreshTokenDto, RegisterUserDto } from './dto';
+import {
+  LoginUserDto,
+  PasswordChangeDto,
+  PasswordRestoreDto,
+  RefreshTokenDto,
+  RegisterUserDto,
+} from './dto';
 import { ApproveDto } from './dto/approve.dto';
+import { PasswordRestoreChangeDto } from './dto/password-restore-change.dto';
 import { UserService } from './user.service';
 import { UserRoleEnum } from './user.types';
 
@@ -47,6 +54,9 @@ export class UserController {
       JwtGuard(this.jwtService),
       (req: Request, res: Response) => this.logout(req, res),
     );
+    this.router.post('/password/restore', (req: Request, res: Response) =>
+      this.passwordRestore(req, res),
+    );
     this.router.post('/:id/block', authorization, (req: Request, res: Response) =>
       this.changeIsActive(req, res, false),
     );
@@ -55,6 +65,9 @@ export class UserController {
     );
     this.router.put('/password/change', (req: Request, res: Response) =>
       this.passwordChange(req, res),
+    );
+    this.router.put('/password/restore/change', (req: Request, res: Response) =>
+      this.passwordRestoreChange(req, res),
     );
     this.router.get(
       '/profile',
@@ -133,6 +146,22 @@ export class UserController {
     const dto = validate(PasswordChangeDto, req.body);
 
     const result = await this.userService.passwordChange(dto);
+
+    res.json(result);
+  }
+
+  async passwordRestore(req: Request, res: Response) {
+    const dto = validate(PasswordRestoreDto, req.body);
+
+    const result = await this.userService.passwordRestore(dto);
+
+    res.json(result);
+  }
+
+  async passwordRestoreChange(req: Request, res: Response) {
+    const dto = validate(PasswordRestoreChangeDto, req.body);
+
+    const result = await this.userService.passwordRestoreChange(dto);
 
     res.json(result);
   }

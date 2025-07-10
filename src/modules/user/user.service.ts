@@ -2,8 +2,10 @@ import axios from 'axios';
 import { compare, hash } from 'bcrypt';
 import { CronJob } from 'cron';
 import { inject, injectable } from 'inversify';
+import { v4 } from 'uuid';
 import {
   redisMailConfirmation,
+  redisPasswordRestore,
   redisRefreshTokenKey,
   redisUserToken,
 } from '../../cache/redis.keys';
@@ -19,6 +21,7 @@ import logger from '../../logger';
 import {
   EMAIL_CONFIRMATION_QUEUE,
   NEW_REGISTRATION_QUEUE,
+  PASSWORD_RESTORE_QUEUE,
 } from '../../message-broker/rabbitmq.queues';
 import { RabbitMqService } from '../../message-broker/rabbitmq.service';
 import { TimeInSeconds } from '../../shared';
@@ -28,10 +31,15 @@ import {
   ApproveDto,
   LoginUserDto,
   PasswordChangeDto,
+  PasswordRestoreDto,
   RefreshTokenDto,
   RegisterUserDto,
 } from './dto';
-import { MailConfirmation, NewRegistrationMessage } from './user.types';
+import { PasswordRestoreChangeDto } from './dto/password-restore-change.dto';
+import {
+  MailConfirmationAndPasswordRestoreMessage,
+  NewRegistrationMessage,
+} from './user.types';
 import { LoginAttempt } from './user-login.types';
 
 @injectable()
@@ -147,7 +155,7 @@ export class UserService {
       { token },
       { EX: 5 * TimeInSeconds.minute },
     );
-    const message: MailConfirmation = {
+    const message: MailConfirmationAndPasswordRestoreMessage = {
       code: token,
       email: mail,
     };
@@ -256,6 +264,42 @@ export class UserService {
     await this.login(dto);
 
     dto.password = await hash(dto.newPassword, 10);
+
+    await UserEntity.update(dto, { where: { email: dto.email } });
+
+    return { message: 'Смена пароля' };
+  }
+
+  async passwordRestore(dto: PasswordRestoreDto) {
+    logger.info(`Запрос на восстановление пароля от ${dto.email}`);
+
+    const user = await UserEntity.findOne({ where: { email: dto.email } });
+    if (user) {
+      const code = v4();
+
+      await this.redis.set(
+        redisPasswordRestore(dto.email),
+        { code },
+        { EX: 10 * TimeInSeconds.minute },
+      );
+      const message: MailConfirmationAndPasswordRestoreMessage = {
+        code: code,
+        email: dto.email,
+      };
+
+      await this.rabbitMqService.channel.sendToQueue(PASSWORD_RESTORE_QUEUE, message);
+    }
+
+    return { message: 'Код для сброса пароля отправлен на почту' };
+  }
+  async passwordRestoreChange(dto: PasswordRestoreChangeDto) {
+    logger.info('Пришел код на смену пароля');
+
+    const codeCache = await this.redis.get(redisPasswordRestore(dto.email));
+    if (!codeCache || codeCache.code !== dto.code) {
+      throw new UnauthorizedException();
+    }
+    dto.password = await hash(dto.password, 10);
 
     await UserEntity.update(dto, { where: { email: dto.email } });
 
